@@ -75,7 +75,7 @@ if __name__ == '__main__':
         ],
        'topP': 0.8,
        'topK': 0,
-       'maxTokens': 500,
+       'maxTokens': 2000,
        'temperature': 0.15,
        'repeatPenalty': 5.0,
        'stopBefore': [],
