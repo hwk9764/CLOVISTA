@@ -16,6 +16,7 @@ $ export TMPDIR=/data/ephemeral/tmp
 $ mkdir -p $TMPDIR
 
 # 필요 라이브러리 설치
+$ https://blog.secretmuse.net/?p=380
 $ pip install --upgrade pip
 $ pip install -r requirements.txt
 ```

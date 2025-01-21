@@ -1,5 +1,7 @@
 .venv/
 *.csv
+*.json
+*.csv
 
 # My custom
 .gihub
