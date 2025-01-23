@@ -15,6 +15,12 @@ $ . .venv/bin/activate
 $ export TMPDIR=/data/ephemeral/tmp 
 $ mkdir -p $TMPDIR
 
+# DB 수동 실행 (비번 0104)
+$ su - postgres
+$ /usr/lib/postgresql/12/bin/postgres -D /var/lib/postgresql/12/main
+$ psql -h 10.28.224.177 -p 30634 -U postgres
+
+
 # 필요 라이브러리 설치
 $ https://blog.secretmuse.net/?p=380
 $ pip install --upgrade pip
