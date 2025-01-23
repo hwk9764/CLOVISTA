@@ -1,5 +1,26 @@
-.login-container {
+/* 팝업 스타일 */
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .popup-content {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 400px;
+  }
+  
+  .login-container {
     max-width: 400px;
     margin: 50px auto;
     padding: 20px;
@@ -7,26 +28,18 @@
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     text-align: center;
-    box-sizing: border-box;
   }
   
-  .login-container h2 {
-    font-size: 24px;
-    margin-bottom: 20px;
-    color: #333;
-  }
-  
+  /* 기타 스타일 */
   .input-field {
     width: 100%;
     padding: 12px;
-    margin: 10px 0;
+    margin-bottom: 15px;
     border: 1px solid #ddd;
     border-radius: 5px;
     font-size: 16px;
-    box-sizing: border-box;
   }
   
-  /* 로그인 버튼 */
   .login-button {
     width: 100%;
     padding: 15px;
@@ -36,14 +49,12 @@
     border-radius: 5px;
     font-size: 18px;
     cursor: pointer;
-    box-sizing: border-box;
   }
   
   .login-button:hover {
     background-color: #45a049;
   }
   
-  /* 에러 메시지 */
   .error-message {
     color: red;
     font-size: 14px;

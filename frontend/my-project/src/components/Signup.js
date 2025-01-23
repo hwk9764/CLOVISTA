@@ -18,20 +18,21 @@ const Signup = () => {
 
   const handleSignup = (e) => {
     e.preventDefault();
-
+  
     // 비밀번호 확인 로직
     if (formData.password !== formData.confirmPassword) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
-
-    // 회원 정보 로컬 스토리지에 저장
+  
+    // 회원 정보 로컬 스토리지에 저장 (신규 유저 여부 포함)
     localStorage.setItem('user', JSON.stringify({
       name: formData.name,
       email: formData.email,
       password: formData.password,
+      newUser: true,  // 신규 유저 여부 추가
     }));
-
+  
     alert('회원가입이 완료되었습니다.');
     window.location.href = '/';
   };

@@ -22,13 +22,23 @@ const LoginPopup = ({ onClose }) => {
   // 로그인 버튼 클릭 핸들러
   const handleLogin = () => {
     const storedUser = JSON.parse(localStorage.getItem('user'));
-
-    if (!storedUser || storedUser.id !== formData.id || storedUser.password !== formData.password) {
+  
+    if (!storedUser || storedUser.id !== formData.email || storedUser.password !== formData.password) {
+      console.log(storedUser)
+      console.log(formData)
       setErrorMessage('잘못된 ID 혹은 비밀번호입니다.');
       return;
     }
-
+  
     alert('로그인이 되었습니다!');
+  
+    if (storedUser.newUser) {
+      alert('신규 이용자시군요?');
+      navigate('/survey');  // 설문조사 페이지로 이동
+    } else {
+      navigate('/');  // 메인 페이지로 이동
+    }
+  
     onClose();
   };
 
