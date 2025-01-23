@@ -1,28 +1,74 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import './LoginPopup.css';
 
 const LoginPopup = ({ onClose }) => {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    id: '',
+    password: ''
+  });
+  const [errorMessage, setErrorMessage] = useState('');
 
+  // 입력값 변경 핸들러
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  // 로그인 버튼 클릭 핸들러
+  const handleLogin = () => {
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+
+    if (!storedUser || storedUser.id !== formData.id || storedUser.password !== formData.password) {
+      setErrorMessage('잘못된 ID 혹은 비밀번호입니다.');
+      return;
+    }
+
+    alert('로그인이 되었습니다!');
+    onClose();
+  };
+
+  // 구글 로그인 성공 및 실패 핸들러
   const handleGoogleSuccess = (response) => {
     console.log('구글 로그인 성공:', response);
+    alert('구글 로그인 성공!');
+    onClose();
   };
 
   const handleGoogleFailure = (error) => {
     console.error('구글 로그인 실패:', error);
+    setErrorMessage('구글 로그인에 실패했습니다.');
   };
 
   return (
     <div className="popup-overlay">
       <div className="popup-content">
         <h2 className="popup-title">로그인</h2>
-        
-        <input type="text" placeholder="아이디" className="input-field" />
-        <input type="password" placeholder="비밀번호" className="input-field" />
 
-        <button className="login-button">로그인</button>
+        {errorMessage && <p className="error-message">{errorMessage}</p>}
+
+        <input
+          type="text"
+          name="id"
+          placeholder="아이디"
+          className="input-field"
+          value={formData.id}
+          onChange={handleChange}
+        />
+        <input
+          type="password"
+          name="password"
+          placeholder="비밀번호"
+          className="input-field"
+          value={formData.password}
+          onChange={handleChange}
+        />
+
+        <button className="login-button" onClick={handleLogin}>로그인</button>
 
         <div className="signup-section">
           아직 회원이 아니신가요? 
