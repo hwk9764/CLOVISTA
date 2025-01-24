@@ -32,7 +32,7 @@ const Login = ({ isPopup, onClose }) => {
       alert('신규 이용자시군요?');
       navigate('/survey');  // 설문조사 페이지로 이동
     } else {
-      navigate('/');  // 메인 페이지로 이동
+      navigate('/main');  // 메인 페이지로 이동
     }
   
     onClose();
