@@ -37,7 +37,7 @@ if __name__ == '__main__':
         request_id='309fa53d16a64d7c9c2d8f67f74ac70d'
     )
 
-    channel_id = "0"  # 분석할 채널 ID
+    channel_id = 0  # 분석할 채널 ID
     metrics = {
         'performance': import_from_db(channel_id, 1),
         'relation': import_from_db(channel_id, 2), 
@@ -45,13 +45,13 @@ if __name__ == '__main__':
     }
 
     prompts = [PROMPT_performance, PROMPT_relation, PROMPT_revenue]
-    prompt_names = ["Performance", "Relation", "Revenue"]
+    prompt_names = ["performance", "relation", "revenue"]
 
     for prompt, name in zip(prompts, prompt_names):
         print(f"\n{'-'*20} {name} {'-'*20}")
         formatted_prompt = [
             prompt[0],
-            {"role": "user", "content": prompt[1]['content'].format(**metrics[name.lower()])}
+            {"role": "user", "content": prompt[1]['content'].format(**metrics[name])}
         ]
         request_data = {
             'messages': formatted_prompt,

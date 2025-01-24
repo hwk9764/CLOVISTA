@@ -17,7 +17,7 @@ def get_db_engine(request: Request):
 @dashboard_router.get("/profitability/views-and-donations/{channel_name}")
 async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_engine)):
     """
-    조회수 수입 및 후원 수입 데이터를 반환
+    조회수 수입 및 후원 수입 데이터를 반환(조회수 수입, 슈퍼챗 및 후원 금액)
     Parameters:
         Channel_name: 유튜브 채널명 (나중에 채널 ID로 변경해야할 것 같음)
     Returns:
@@ -29,8 +29,8 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
     """
     # 코드 테스트할 때는 try, except 빼는 것을 추천
     try:
-        query = f'SELECT * FROM public."Channel" WHERE channel_name = {channel_name}'
-        channel_df = pd.read_sql(query, db_engine, params=[channel_name])
+        channel_query = f'SELECT * FROM public."Channel" WHERE channel_name = {channel_name}'
+        channel_df = pd.read_sql(channel_query, db_engine, params=[channel_name])
         if not channel_df:
             raise HTTPException(status_code=404, detail="Channel not found.")
         # 전처리 코드 추가
@@ -50,14 +50,33 @@ async def get_ad_video_status(channel_name: str, db_engine=Depends(get_db_engine
             {"광고영상": "35개 (8달 전 업데이트)", "누적 재생": "1.2천만 (영상당 평균 ~~)", "누적 좋아요": "33.8만 (영상당 평균 ~~)", "누적 댓글": "7천만 (영상당 평균 ~~~)"}
         ]
     """
-    return [
-        {
-            "광고영상": "35개 (8달 전 업데이트)",
-            "누적 재생": "1.2천만 (영상당 평균 ~~)",
-            "누적 좋아요": "33.8만 (영상당 평균 ~~)",
-            "누적 댓글": "7천만 (영상당 평균 ~~~)",
-        }
-    ]
+    query = """
+        SELECT
+            COUNT(*) as ad_count,
+            MAX("videoPublishedAt") as last_update,
+            SUM(CAST("videoViewCount" AS INTEGER)) as total_views,
+            SUM(CAST("videoLikeCount" AS INTEGER)) as total_likes,
+            SUM(CAST("commentCount" AS INTEGER)) as total_comments
+        FROM public."Video" v
+        JOIN public."Channel" c ON v.channel_id = c.id
+        WHERE c."name" = %s AND "hasPaidProductPlacement" = true
+    """
+
+    df = pd.read_sql(query, db_engine, params=(channel_name,))
+
+    avg_views = df.iloc[0]['total_views'] / df.iloc[0]['ad_count']
+    avg_likes = df.iloc[0]['total_likes'] / df.iloc[0]['ad_count']
+    avg_comments = df.iloc[0]['total_comments'] / df.iloc[0]['ad_count']
+
+    
+    months_ago = (pd.Timestamp.now().tz_localize(None) - pd.to_datetime(df.iloc[0]['last_update'], utc=True).tz_localize(None)).days // 30
+
+    return [{
+        "광고영상": f"{int(df.iloc[0]['ad_count'])}개 ({months_ago}달 전 업데이트)",
+        "누적 재생": f"{int(df.iloc[0]['total_views']):,} (영상당 평균 {int(avg_views):,})",
+        "누적 좋아요": f"{int(df.iloc[0]['total_likes']):,} (영상당 평균 {int(avg_likes):,})",
+        "누적 댓글": f"{int(df.iloc[0]['total_comments']):,} (영상당 평균 {int(avg_comments):,})"
+    }]
 
 
 @dashboard_router.get("/profitability/ad-vs-normal/{channel_name}")
@@ -102,7 +121,7 @@ async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_en
 @dashboard_router.get("/audience/creator-communication/{channel_name}")
 async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_engine)):
     """
-    채널주 소통의 정도 데이터를 반환
+    크리에이터 소통의 정도 데이터를 반환
     Parameters:
         channel_name: 유튜브 채널명
     Returns:
