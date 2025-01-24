@@ -29,7 +29,7 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
     """
     # 코드 테스트할 때는 try, except 빼는 것을 추천
     try:
-        query = f'SELECT * FROM public."Channel" WHERE channel_name = %s'
+        query = f'SELECT * FROM public."Channel" WHERE channel_name = {channel_name}'
         channel_df = pd.read_sql(query, db_engine, params=[channel_name])
         if not channel_df:
             raise HTTPException(status_code=404, detail="Channel not found.")

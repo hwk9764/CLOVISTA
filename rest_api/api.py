@@ -39,6 +39,8 @@ def create_app() -> FastAPI:
     app.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
     app.include_router(chatbot_router, prefix="/chatbot", tags=["Chatbot"])
 
+    # 앱 상태에 DB 엔진 저장 (라우터에서 접근 가능)
+    app.state.db_engine = engine
     return app
 
 
