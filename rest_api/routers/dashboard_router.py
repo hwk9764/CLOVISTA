@@ -27,6 +27,9 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
             {"date": "2024-01-03", "value": 20}
         ]
     """
+    # 관련 데이터 가져오기
+    # 날짜별 아니고 {내 조회수 수익:, 평균 조회수 수익:, 내 슈퍼챗 수익:, 평균 슈퍼챗 수익:} 으로 보내기
+    
     # 코드 테스트할 때는 try, except 빼는 것을 추천
     try:
         channel_query = f'SELECT * FROM public."Channel" WHERE channel_name = {channel_name}'
@@ -50,6 +53,10 @@ async def get_ad_video_status(channel_name: str, db_engine=Depends(get_db_engine
             {"광고영상": "35개 (8달 전 업데이트)", "누적 재생": "1.2천만 (영상당 평균 ~~)", "누적 좋아요": "33.8만 (영상당 평균 ~~)", "누적 댓글": "7천만 (영상당 평균 ~~~)"}
         ]
     """
+    def simplify(value):
+        if value>=int(1e8): return f"{round(value/int(1e8), 1)}억"
+        elif value>=int(1e4): return f"{round(value/int(1e4), 1)}만"
+        else: f"{round(value, 1)}"
     query = """
         SELECT
             COUNT(*) as ad_count,
@@ -64,18 +71,19 @@ async def get_ad_video_status(channel_name: str, db_engine=Depends(get_db_engine
 
     df = pd.read_sql(query, db_engine, params=(channel_name,))
 
-    avg_views = df.iloc[0]['total_views'] / df.iloc[0]['ad_count']
-    avg_likes = df.iloc[0]['total_likes'] / df.iloc[0]['ad_count']
-    avg_comments = df.iloc[0]['total_comments'] / df.iloc[0]['ad_count']
-
-    
-    months_ago = (pd.Timestamp.now().tz_localize(None) - pd.to_datetime(df.iloc[0]['last_update'], utc=True).tz_localize(None)).days // 30
+    ad_count = df.iloc[0]['ad_count']
+    total_views = df.iloc[0]['total_views']
+    total_likes = df.iloc[0]['total_likes']
+    total_comments = df.iloc[0]['total_comments']
+    avg_views = total_views / ad_count
+    avg_likes = total_likes / ad_count
+    avg_comments = total_comments / ad_count
 
     return [{
-        "광고영상": f"{int(df.iloc[0]['ad_count'])}개 ({months_ago}달 전 업데이트)",
-        "누적 재생": f"{int(df.iloc[0]['total_views']):,} (영상당 평균 {int(avg_views):,})",
-        "누적 좋아요": f"{int(df.iloc[0]['total_likes']):,} (영상당 평균 {int(avg_likes):,})",
-        "누적 댓글": f"{int(df.iloc[0]['total_comments']):,} (영상당 평균 {int(avg_comments):,})"
+        "광고 영상": f"{simplify(ad_count)}개)",
+        "누적 재생": f"{simplify(total_views)}회 (영상 당 평균 {simplify(avg_views)}회)",
+        "누적 좋아요": f"{simplify(total_likes)}개 (영상 당 평균 {simplify(avg_likes)}개)",
+        "누적 댓글": f"{simplify(total_comments)}개 (영상 당 평균 {simplify(avg_comments)}개)"
     }]
 
 
@@ -112,16 +120,16 @@ async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_en
         [
             {"좋아요 비율": "0.11%"},
             {"댓글 비율": "3.69%"},
-            {"공유 비율": "5.87*"}
+            {"공유 비율": "5.87%"}
         ]
     """
-    return [{"좋아요 비율": "0.11%"}, {"댓글 비율": "3.69%"}, {"공유 비율": "5.87*"}]
+    return [{"좋아요 비율": "0.11%"}, {"댓글 비율": "3.69%"}, {"공유 비율": "5.87%"}]
 
 
 @dashboard_router.get("/audience/creator-communication/{channel_name}")
 async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_engine)):
     """
-    크리에이터 소통의 정도 데이터를 반환
+    크리에이터가 시청자와 소통하는 하는 정도를 나타내는 데이터를 반환
     Parameters:
         channel_name: 유튜브 채널명
     Returns:
