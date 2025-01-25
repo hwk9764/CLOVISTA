@@ -1,0 +1,122 @@
+.sense-container {
+    text-align: center;
+    margin: 0 auto;
+    padding: 40px 20px;
+    max-width: 600px;
+    background-color: #f8f8f8;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .file-upload-section {
+    margin: 20px 0;
+    padding: 30px;
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+    background-color: #fafafa;
+    position: relative;
+    transition: border-color 0.3s, background-color 0.3s;
+  }
+  
+  .file-upload-section.dragging {
+    border-color: #4caf50;
+    background-color: #eaffea;
+  }
+  
+  .file-upload-section p {
+    margin: 10px 0;
+    font-size: 14px;
+    color: #666;
+  }
+  
+  .file-input-label {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 14px;
+    color: white;
+    background-color: #4caf50;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .file-input-label:hover {
+    background-color: #45a049;
+  }
+  
+  .file-upload-section input {
+    display: none;
+  }
+  
+  .file-name {
+    margin-top: 15px;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  .dropdown-section {
+    margin: 20px 0;
+  }
+  
+  .dropdown {
+    margin-top: 10px;
+    padding: 10px;
+    font-size: 16px;
+    width: 80%;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  
+  .category-selected {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
+  }
+  .progress-bar-container {
+    margin-top: 10px;
+    margin-left: 50px;
+    width: 80%; /* 가운데 정렬을 위해 */
+    height: 20px;
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+  
+  .progress-bar {
+    height: 100%;
+    background-color: #4caf50;
+    transition: width 0.2s ease;
+    position: absolute; /* 바를 왼쪽에서 시작 */
+    left: 0;
+    top: 0;
+  }
+  
+  .progress-bar-container p {
+    position: absolute;
+    color: #fff;
+    font-size: 14px;
+    margin: 0;
+    left: 50%; /* 텍스트를 컨테이너 중앙에 배치 */
+    transform: translateX(-50%);
+  }
+  
+  .sensitivity-check-button {
+    margin-top: 20px;
+    padding: 15px 30px;
+    font-size: 16px;
+    color: white;
+    background-color: #4caf50;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .sensitivity-check-button:hover {
+    background-color: #45a049;
+  }
+  
