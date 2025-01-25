@@ -6,6 +6,7 @@ import Signup from './components/Signup';
 import Login from './components/Login';
 import Survey from './components/Survey';
 import Main from './components/Main';
+import Sense from './components/Sense';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/login" element={<Login />} />
         <Route path="/survey" element={<Survey />} />
         <Route path="/main" element={<Main />} />
+        <Route path="/main/sense" element={<Sense />} />
       </Routes>
     </Router>
   </GoogleOAuthProvider>

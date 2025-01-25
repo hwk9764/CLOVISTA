@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; 
 import './main.css';
 
 const MainPage = () => {
@@ -27,17 +28,28 @@ const MainPage = () => {
         <ServiceCard
           title="영상 업로드 전 민감도 분석하기"
           description="영상이 업로드되기 전 민감도를 확인해보세요."
+          link='/main/sense'
         />
       </div>
     </div>
   );
 };
 
-const ServiceCard = ({ title, description }) => (
-  <div className="service-card">
+const ServiceCard = ({ title, description, link }) => {
+  const navigate=useNavigate();
+
+  const handleClick = () => {
+    if (link) {
+      navigate(link); // link가 있으면 해당 경로로 이동
+    }
+  };
+
+  return (
+  <div className="service-card" onClick={handleClick} style={{cursor:'pointer'}}>
     <h3>{title}</h3>
     <p>{description}</p>
   </div>
-);
+  );
+};
 
 export default MainPage;
