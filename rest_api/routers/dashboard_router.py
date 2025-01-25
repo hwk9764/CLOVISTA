@@ -80,10 +80,10 @@ async def get_ad_video_status(channel_name: str, db_engine=Depends(get_db_engine
     avg_comments = total_comments / ad_count
 
     return [{
-        "광고 영상": f"{simplify(ad_count)}개)",
+        "광고 영상": f"{ad_count}개",
         "누적 재생": f"{simplify(total_views)}회 (영상 당 평균 {simplify(avg_views)}회)",
         "누적 좋아요": f"{simplify(total_likes)}개 (영상 당 평균 {simplify(avg_likes)}개)",
-        "누적 댓글": f"{simplify(total_comments)}개 (영상 당 평균 {simplify(avg_comments)}개)"
+        "누적 댓글": f"{simplify(total_comments)}개 (영상 당 평균 {int(avg_comments)}개)"
     }]
 
 
@@ -120,11 +120,34 @@ async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_en
         [
             {"좋아요 비율": "0.11%"},
             {"댓글 비율": "3.69%"},
-            {"공유 비율": "5.87%"}
+            {"공유 비율": "5.87%"} --> 데이터가 없어서 일단 지움
         ]
     """
-    return [{"좋아요 비율": "0.11%"}, {"댓글 비율": "3.69%"}, {"공유 비율": "5.87%"}]
-
+    query = """
+        SELECT 
+            c.name,
+            SUM(CAST(v."videoViewCount" AS INTEGER)) as total_views,
+            SUM(CAST(v."videoLikeCount" AS INTEGER)) as total_likes,
+            SUM(CAST(v."commentCount" AS INTEGER)) as total_comments
+        FROM public."Channel" c
+        JOIN public."Video" v ON c.id = v.channel_id
+        WHERE c.name = %s
+        GROUP BY c.name
+    """
+    
+    df = pd.read_sql(query, db_engine, params=(channel_name,))
+    
+    total_views = df.iloc[0]['total_views']
+    total_likes = df.iloc[0]['total_likes']
+    total_comments = df.iloc[0]['total_comments']
+    
+    like_ratio = (total_likes / total_views * 100) if total_views > 0 else 0
+    comment_ratio = (total_comments / total_views * 100) if total_views > 0 else 0
+    
+    return [
+        {"좋아요 비율": f"{like_ratio:.2f}%"},
+        {"댓글 비율": f"{comment_ratio:.2f}%"}
+    ]
 
 @dashboard_router.get("/audience/creator-communication/{channel_name}")
 async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_engine)):
