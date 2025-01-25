@@ -15,6 +15,12 @@ $ . .venv/bin/activate
 $ export TMPDIR=/data/ephemeral/tmp 
 $ mkdir -p $TMPDIR
 
+# DB 수동 실행 (비번 0104)
+$ su - postgres
+$ /usr/lib/postgresql/12/bin/postgres -D /var/lib/postgresql/12/main
+$ psql -h 10.28.224.177 -p 30634 -U postgres
+
+
 # 필요 라이브러리 설치
 $ https://blog.secretmuse.net/?p=380
 $ pip install --upgrade pip
@@ -25,24 +31,5 @@ $ pip install -r requirements.txt
 ## Running the Application
 ### Setup the API Backend
 ```sh
-uvicorn restapi.router:app --host 0.0.0.0 --port 8000
+uvicorn rest_api.api:app --host 0.0.0.0 --port 30635 --reload
 ```
-### Setup the Streamlit UI
-```sh
-streamlit run dashboard_streamlit_app/app.py
-```
-
-### Access the Chatbot
-Open your browser and navigate to the following address to interact with the chatbot :
-```sh
-http://localhost:8501
-```
-
-### Login Credentials
-- Use the following credentials to log in and test the application :
-    - User 1 :
-        - ID : `user1`
-        - Password : `1234`
-    - User 2 :
-        - ID : `user2`
-        - Password : `5678`

@@ -1,6 +1,9 @@
 streamlit
 fastapi
+uvicorn
 google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2
 pytube3
+sqlalchemy
+psycopg2-binary
