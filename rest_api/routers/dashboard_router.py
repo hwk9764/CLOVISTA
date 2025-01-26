@@ -22,13 +22,12 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
         Channel_name: 유튜브 채널명 (나중에 채널 ID로 변경해야할 것 같음)
     Returns:
         [
-            {"date": "2024-01-01", "value": 10},
-            {"date": "2024-01-02", "value": 15},
-            {"date": "2024-01-03", "value": 20}
+            {"조회수_유저": 1,115,132},
+            {"조회수_평균": 1,000,000},
+            {"후원_유저": 568,186},
+            {"후원_평균": 123,456}
         ]
     """
-    # 관련 데이터 가져오기
-    # 날짜별 아니고 {내 조회수 수익:, 평균 조회수 수익:, 내 슈퍼챗 수익:, 평균 슈퍼챗 수익:} 으로 보내기
     
     # 코드 테스트할 때는 try, except 빼는 것을 추천
     try:
@@ -80,10 +79,10 @@ async def get_ad_video_status(channel_name: str, db_engine=Depends(get_db_engine
     avg_comments = total_comments / ad_count
 
     return [{
-        "광고 영상": f"{simplify(ad_count)}개)",
-        "누적 재생": f"{simplify(total_views)}회 (영상 당 평균 {simplify(avg_views)}회)",
-        "누적 좋아요": f"{simplify(total_likes)}개 (영상 당 평균 {simplify(avg_likes)}개)",
-        "누적 댓글": f"{simplify(total_comments)}개 (영상 당 평균 {simplify(avg_comments)}개)"
+        "광고 영상": f"{simplify(ad_count)})",
+        "누적 조회수": f"{simplify(total_views)} (영상 당 평균 {simplify(avg_views)})",
+        "누적 좋아요": f"{simplify(total_likes)} (영상 당 평균 {simplify(avg_likes)})",
+        "누적 댓글": f"{simplify(total_comments)} (영상 당 평균 {simplify(avg_comments)})"
     }]
 
 
@@ -95,15 +94,19 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
         channel_name: 유튜브 채널명 (나중에 채널 ID로 변경해야할 것 같음)
     Returns:
         [
-            {"항목": "동영상", "일반 영상": "368개", "광고 영상": "35개", "비교": "-"},
+            {"항목": "영상 수", "일반 영상": "368개", "광고 영상": "35개", "비교": "-"},
             {"항목": "업데이트 주기", "일반 영상": "4개/월", "광고 영상": "2개/월", "비교": "-"},
-            ...
-
+            {"항목": "평균 조회수", "일반 영상": "100,000회", "광고 영상": "20,000회", "비교": "-80,000"},
+            {"항목": "평균 좋아요 비율", "일반 영상": "0.2%", "광고 영상": "0.001%", "비교": "-0.199%"},
+            {"항목": "평균 댓글 비율", "일반 영상": "0.01%", "광고 영상": "0.005%", "비교": "-0.005%"}
         ]
     """
     return [
-        {"항목": "동영상", "일반 영상": "368개", "광고 영상": "35개", "비교": "-"},
+        {"항목": "영상 수", "일반 영상": "368", "광고 영상": "35", "비교": "-"},
         {"항목": "업데이트 주기", "일반 영상": "4개/월", "광고 영상": "2개/월", "비교": "-"},
+        {"항목": "평균 조회수", "일반 영상": "100,000", "광고 영상": "20,000", "비교": "-80,000"},
+        {"항목": "평균 좋아요 비율", "일반 영상": "0.2%", "광고 영상": "0.001%", "비교": "-0.199%"},
+        {"항목": "평균 댓글 비율", "일반 영상": "0.01%", "광고 영상": "0.005%", "비교": "-0.005%"}
     ]
 
 
@@ -133,7 +136,7 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
     Parameters:
         channel_name: 유튜브 채널명
     Returns:
-        어떻게 전달할지 논의 필요
+        어떻게 전달할지 논의 필요. 프론트에 값만 전달할지...?
     """
     return None
 
@@ -153,3 +156,39 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
 ###################
 ## 채널 성과 API ##
 ###################
+
+# 채널 성적
+@dashboard_router.get("performance/channel-performance/{channel_name}")
+async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_engine)):
+    """
+    method 설명
+    Parameters:
+        
+    Returns:
+        
+    """
+    return
+
+# 채널 성장 추세
+@dashboard_router.get("performance/channel-growth/{channel_name}")
+async def get_channel_growth(channel_name: str, db_engine=Depends(get_db_engine)):
+    """
+    method 설명
+    Parameters:
+        
+    Returns:
+        
+    """
+    return
+
+# 채널 특징
+@dashboard_router.get("performance/channel-feature/{channel_name}")
+async def get_channel_feature(channel_name: str, db_engine=Depends(get_db_engine)):
+    """
+    method 설명
+    Parameters:
+        
+    Returns:
+        
+    """
+    return
