@@ -1,0 +1,9 @@
+fastapi 주소 : 10.28.224.177.30635/docs
+
+각자 서버에서 코드를 고치고 난 후에 깃허브에 올리고
+fastapi 서버에 다시 들어와서 코드를 받고 api를 reload
+
+어떻게 작업하면 좋을지?
+- respt_api/api.py - dashboard, chatbot 두개로 나눔
+
+docs에서 테스트할때 code 200이면 성공
