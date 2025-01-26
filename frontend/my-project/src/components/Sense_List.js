@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Sense_List.css';
 
 const SenseList = () => {
   // 가상 데이터 생성
+  const navigate = useNavigate();
   const mockData = Array.from({ length: 40 }, (_, i) => ({
     id: i + 1,
     title: `업로드된 영상 제목 ${i + 1}`,
@@ -25,6 +27,12 @@ const SenseList = () => {
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
+
+  const handleViewResult = (id) => {
+    navigate(`/main/sense/${id}`);
+  };
+
+
 
   return (
     <div className="sense-list-container">
@@ -60,6 +68,14 @@ const SenseList = () => {
                       ? 'status-completed'
                       : 'status-error'
                   }`}
+                  onClick={
+                    item.status === '결과 보기'
+                      ? () => handleViewResult(item.id) // "결과 보기" 상태에서만 클릭 가능
+                      : undefined // 다른 상태에서는 클릭 이벤트 없음
+                  }
+                  style={{
+                    cursor: item.status === '결과 보기' ? 'pointer' : 'default', // "결과 보기" 상태에서만 커서 변경
+                  }}
                 >
                   {item.status}
                 </span>
