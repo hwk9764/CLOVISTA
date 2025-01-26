@@ -31,15 +31,33 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
     
     # 코드 테스트할 때는 try, except 빼는 것을 추천
     try:
-        channel_query = f'SELECT * FROM public."Channel" WHERE channel_name = {channel_name}'
-        channel_df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not channel_df:
+        channel_query = f"""
+        SELECT "viewCount", "Donation",
+            (SELECT AVG(CAST("viewCount" as float)) FROM "Channel") as avg_viewcount,
+            (SELECT AVG(CAST("Donation" as float)) FROM "Channel") as avg_donation
+        FROM public."Channel"
+        WHERE "name" = {channel_name}
+        """
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
             raise HTTPException(status_code=404, detail="Channel not found.")
         # 전처리 코드 추가
-
+        viewcount = int(df.iloc[0]['viewCount'])
+        avg_viewcount = int(df.iloc[0]['avg_viewcount'])
+        view_profit_user = (viewcount*2, int(viewcount*4.5))
+        view_profit_avg = (avg_viewcount*2, int(avg_viewcount*4.5))
+        donation_profit_user = int(df.iloc[0]['Donation'])
+        donation_profit_avg = int(df.iloc[0]['avg_donation'])
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+    return [
+            {"조회수_유저": view_profit_user},
+            {"조회수_평균": view_profit_avg},
+            {"후원_유저": donation_profit_user},
+            {"후원_평균": donation_profit_avg}
+        ]
 
 @dashboard_router.get("/profitability/ad-video-status/{channel_name}")
 async def get_ad_video_status(channel_name: str, db_engine=Depends(get_db_engine)):
@@ -67,17 +85,21 @@ async def get_ad_video_status(channel_name: str, db_engine=Depends(get_db_engine
         JOIN public."Channel" c ON v.channel_id = c.id
         WHERE c."name" = %s AND "hasPaidProductPlacement" = true
     """
-
-    df = pd.read_sql(query, db_engine, params=(channel_name,))
-
-    ad_count = df.iloc[0]['ad_count']
-    total_views = df.iloc[0]['total_views']
-    total_likes = df.iloc[0]['total_likes']
-    total_comments = df.iloc[0]['total_comments']
-    avg_views = total_views / ad_count
-    avg_likes = total_likes / ad_count
-    avg_comments = total_comments / ad_count
-
+    try:
+        df = pd.read_sql(query, db_engine, params=(channel_name,))
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        ad_count = df.iloc[0]['ad_count']
+        total_views = df.iloc[0]['total_views']
+        total_likes = df.iloc[0]['total_likes']
+        total_comments = df.iloc[0]['total_comments']
+        avg_views = total_views / ad_count
+        avg_likes = total_likes / ad_count
+        avg_comments = total_comments / ad_count
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    
     return [{
         "광고 영상": f"{simplify(ad_count)}개)",
         "누적 조회수": f"{simplify(total_views)}회 (영상 당 평균 {simplify(avg_views)}회)",
@@ -95,12 +117,30 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
     Returns:
         [
             {"항목": "영상 수", "일반 영상": "368개", "광고 영상": "35개", "비교": "-"},
-            {"항목": "업데이트 주기", "일반 영상": "4개/월", "광고 영상": "2개/월", "비교": "-"},
+            {"항목": "업데이트 주기", "일반 영상": "월 4개", "광고 영상": "월 2개", "비교": "-"},
             {"항목": "평균 조회수", "일반 영상": "100,000회", "광고 영상": "20,000회", "비교": "-80,000"},
             {"항목": "평균 좋아요 비율", "일반 영상": "0.2%", "광고 영상": "0.001%", "비교": "-0.199%"},
             {"항목": "평균 댓글 비율", "일반 영상": "0.01%", "광고 영상": "0.005%", "비교": "-0.005%"}
         ]
     """
+    channel_query = f"""
+        SELECT 
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+        FROM public."Video"
+        JOIN 
+        WHERE "channel_id" = '{channel_id}'
+        """
+    try:
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+        
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    
     return [
         {"항목": "영상 수", "일반 영상": "368", "광고 영상": "35", "비교": "-"},
         {"항목": "업데이트 주기", "일반 영상": "4개/월", "광고 영상": "2개/월", "비교": "-"},
@@ -137,15 +177,20 @@ async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_en
         WHERE c.name = %s
         GROUP BY c.name
     """
+    try:
+        df = pd.read_sql(query, db_engine, params=(channel_name,))
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+        total_views = df.iloc[0]['total_views']
+        total_likes = df.iloc[0]['total_likes']
+        total_comments = df.iloc[0]['total_comments']
+        
+        like_ratio = (total_likes / total_views * 100) if total_views > 0 else 0
+        comment_ratio = (total_comments / total_views * 100) if total_views > 0 else 0
     
-    df = pd.read_sql(query, db_engine, params=(channel_name,))
-    
-    total_views = df.iloc[0]['total_views']
-    total_likes = df.iloc[0]['total_likes']
-    total_comments = df.iloc[0]['total_comments']
-    
-    like_ratio = (total_likes / total_views * 100) if total_views > 0 else 0
-    comment_ratio = (total_comments / total_views * 100) if total_views > 0 else 0
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     
     return [
         {"좋아요 비율": f"{like_ratio:.2f}%"},
@@ -161,6 +206,21 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
     Returns:
         어떻게 전달할지 논의 필요. 프론트에 값만 전달할지...?
     """
+    channel_query = f"""
+        SELECT 
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+        FROM public."Video"
+        JOIN 
+        WHERE "channel_id" = '{channel_id}'
+        """
+    try:
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     return None
 
 
@@ -173,6 +233,21 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
     Returns:
         어떻게 전달할지 논의 필요
     """
+    channel_query = f"""
+        SELECT 
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+        FROM public."Video"
+        JOIN 
+        WHERE "channel_id" = '{channel_id}'
+        """
+    try:
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     return None
 
 
@@ -190,6 +265,21 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
     Returns:
         
     """
+    channel_query = f"""
+        SELECT 
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+        FROM public."Video"
+        JOIN 
+        WHERE "channel_id" = '{channel_id}'
+        """
+    try:
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     return
 
 # 채널 성장 추세
@@ -202,6 +292,21 @@ async def get_channel_growth(channel_name: str, db_engine=Depends(get_db_engine)
     Returns:
         
     """
+    channel_query = f"""
+        SELECT 
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+        FROM public."Video"
+        JOIN 
+        WHERE "channel_id" = '{channel_id}'
+        """
+    try:
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     return
 
 # 채널 특징
@@ -214,4 +319,19 @@ async def get_channel_feature(channel_name: str, db_engine=Depends(get_db_engine
     Returns:
         
     """
+    channel_query = f"""
+        SELECT 
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+        FROM public."Video"
+        JOIN 
+        WHERE "channel_id" = '{channel_id}'
+        """
+    try:
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     return
