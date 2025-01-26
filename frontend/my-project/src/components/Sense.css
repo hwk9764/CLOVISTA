@@ -85,7 +85,7 @@
     align-items: center;
     position: relative;
   }
-  
+  /*추후 백엔드와 연동해서 게이지 차는 속도 변경해야함*/
   .progress-bar {
     height: 100%;
     background-color: #4caf50;
