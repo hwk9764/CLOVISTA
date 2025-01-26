@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import './Sense.css';
 
 const Sense = () => {
@@ -6,6 +7,8 @@ const Sense = () => {
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0); // 업로드 진행 상태
+  const navigate=useNavigate();
+
 
   const simulateFileUpload = () => {
     // 파일 업로드를 시뮬레이션 (예: API 호출 대체)
@@ -53,8 +56,7 @@ const Sense = () => {
   };
 
   const handleSensitivityCheck = () => {
-    alert('민감도 검사를 시작합니다!');
-    // 민감도 검사 동작 추가
+    navigate('/main/senselist');
   };
 
   return (
