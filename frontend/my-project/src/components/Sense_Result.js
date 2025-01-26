@@ -16,12 +16,16 @@ const Sense_result = () => {
         '(01:05) 정보를 잘 찾는 방법을 알려 드리는 것처럼, 추가되는 정보보다 정보 찾는 방법이나 투자에 대한 시선을 전달하는 방식으로 요점을 잡는 것이 좋습니다.',
         '(04:19) 경제 주제와 사람들의 대화를 다루는 영상이기 때문에 새롭게 다룰 정보를 찾기 쉽지 않지만, 이번 사례에서는 큰 문제가 없어 보입니다.',
       ],
-      score: 15,
+      score: 10,
     },
-    // Add more mock data for other IDs
   };
 
   const result = mockResults[id];
+
+  const calculateRotation = (score) => {
+    // 점수를 각도로 변환 (0~100 -> -90도 ~ 90도)
+    return (score / 100) * 180 - 90; // 0점 -> -90도, 100점 -> 90도
+  };
 
   return (
     <div className="result-container">
@@ -40,8 +44,20 @@ const Sense_result = () => {
           </div>
           <div className="result-score">
             <div className="gauge">
-              <div className="gauge-fill" style={{ transform: `rotate(${result.score * 2.4}deg)` }}></div>
-              <div className="gauge-cover">{result.score}점</div>
+              {/* 배경 색상 */}
+              <div className="gauge-background"></div>
+              {/* 화살표 */}
+              <div
+                className="gauge-arrow"
+                style={{
+                  transform: `rotate(${calculateRotation(result.score)}deg)`,
+                }}
+              ></div>
+              {/* 중앙 텍스트 */}
+              <div className="gauge-cover">
+                <span className="score-text">{result.score}점</span>
+                <span className="label-text">위험도 점수</span>
+              </div>
             </div>
           </div>
         </>
