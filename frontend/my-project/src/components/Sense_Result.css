@@ -2,7 +2,7 @@
   max-width: 400px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #f8f8f8;
+  background-color: white;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
@@ -42,12 +42,12 @@
   border-radius: 200px 200px 0 0;
   background: conic-gradient(
     from 180deg,
-    #4caf50 0%,
-    #4caf50 33.3%,
-    #ffc107 33.3%,
-    #ffc107 66.6%,
-    #f44336 66.6%,
-    #f44336 100%
+    green 0%,
+    green 33.3%,
+    orange 33.3%,
+    orange 66.6%,
+    red 66.6%,
+    red 100%
   );
 }
 
@@ -67,7 +67,7 @@
   position: absolute;
   width: 5px; /* 화살표 두께 */
   height: 50%; /* 화살표 길이 (전체 높이의 50%) */
-  background: #000; /* 화살표 색상 */
+  background: black; /* 화살표 색상 */
   top: 50%; /* 화살표의 시작점 */
   left: 50%;
   transform: translateX(-50%) translateY(-100%); /* 중심 정렬 */
@@ -78,7 +78,7 @@
   position: absolute;
   width: 160px;
   height: 80px;
-  background: #ffffff;
+  background: white;
   border-radius: 160px 160px 0 0;
   top: 20px;
   left: 20px;
@@ -93,10 +93,10 @@
 .score-text {
   font-size: 18px;
   font-weight: bold;
-  color: #000;
+  color: black;
 }
 
 .label-text {
   font-size: 14px;
-  color: #666;
+  color: gray;
 }
