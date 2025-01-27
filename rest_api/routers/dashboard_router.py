@@ -18,12 +18,12 @@ conn = psycopg2.connect(
         database="postgres"
     )
 query = f"""
-        SELECT "id", "name"
+        SELECT "id", "title"
         FROM "Channel";
         """
 with conn.cursor() as cur:
     id_df = pd.read_sql(query, conn)
-    id_name_pair = {name:int(id) for name, id in zip(id_df['name'].values, id_df['id'].values)}
+    name_to_id = {name:int(id) for name, id in zip(id_df['title'].values, id_df['id'].values)}
 
 ###################
 ## 채널 수익성 API ##
@@ -35,12 +35,12 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
     Parameters:
         Channel_name: 유튜브 채널명 (나중에 채널 ID로 변경해야할 것 같음)
     Returns:
-        [
-            {"조회수_유저": 1,115,132},
-            {"조회수_평균": 1,000,000},
-            {"후원_유저": 568,186},
-            {"후원_평균": 123,456}
-        ]
+        [{
+        "조회수_유저": 1,115,132,
+        "조회수_평균": 1,000,000,
+        #"후원_유저": 568,186,
+        #"후원_평균": 123,456
+        }]
     """
 
     # 코드 테스트할 때는 try, except 빼는 것을 추천
@@ -50,7 +50,7 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
             (SELECT AVG(CAST("viewCount" as float)) FROM "Channel") as avg_viewcount,
             (SELECT AVG(CAST("Donation" as float)) FROM "Channel") as avg_donation
         FROM public."Channel"
-        WHERE "id" = '{id_name_pair[channel_name]}'
+        WHERE "id" = '{name_to_id[channel_name]}'
         """
         df = pd.read_sql(channel_query, db_engine)
         if df.empty:
@@ -129,35 +129,67 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
     Parameters:
         channel_name: 유튜브 채널명 (나중에 채널 ID로 변경해야할 것 같음)
     Returns:
-        [
-            {"항목": "영상 수", "일반 영상": "368개", "광고 영상": "35개", "비교": "-"},
-            {"항목": "업데이트 주기", "일반 영상": "월 4개", "광고 영상": "월 2개", "비교": "-"},
-            {"항목": "평균 조회수", "일반 영상": "100,000회", "광고 영상": "20,000회", "비교": "-80,000"},
-            {"항목": "평균 좋아요 비율", "일반 영상": "0.2%", "광고 영상": "0.001%", "비교": "-0.199%"},
-            {"항목": "평균 댓글 비율", "일반 영상": "0.01%", "광고 영상": "0.005%", "비교": "-0.005%"}
-        ]
+        [{
+        "영상 수": {"일반 영상":"368개", "광고 영상":"35개", "비교":"-"},
+         "업데이트 주기": {"일반 영상":"월 4개", "광고 영상":"월 2개", "비교":"-"},
+         "평균 조회수": {"일반 영상":"100,000회", "광고 영상":"20,000회", "비교":"-80,000"},
+         "평균 좋아요 비율": {"일반 영상":"0.2%", "광고 영상":"0.001%", "비교":"-0.199%"},
+         "평균 댓글 비율": {"일반 영상":"0.01%", "광고 영상":"0.005%", "비교":"-0.005%"}
+         }]
     """
-    channel_query = f"""
-        SELECT 
-            SUM(CASE WHEN "hasPaidProductPlacement" = true THEN 1 ELSE 0 END) AS adsViewCount,
-        FROM public."Video"
-        JOIN 
-        WHERE "channel_id" = '{channel_id}'
+    noads_query = f"""
+        SELECT
+                SUM(CAST(v."videoViewCount" AS FLOAT)) FILTER (WHERE TO_TIMESTAMP("videoPublishedAt", 'YYYY-MM-DD') >= CURRENT_DATE - INTERVAL '90 days') AS viewcount,
+                SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE TO_TIMESTAMP("videoPublishedAt", 'YYYY-MM-DD') >= CURRENT_DATE - INTERVAL '90 days') AS likecount,
+                SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE TO_TIMESTAMP("videoPublishedAt", 'YYYY-MM-DD') >= CURRENT_DATE - INTERVAL '90 days') AS commentcount,
+                COUNT(*) FILTER (WHERE TO_TIMESTAMP("videoPublishedAt", 'YYYY-MM-DD') >= CURRENT_DATE - INTERVAL '90 days') AS videocount
+        FROM public."Video" v
+        LEFT JOIN public."Channel" c
+        ON v."channel_id" = c."id"
+        WHERE v."channel_id" = '{name_to_id[channel_name]}' AND v."hasPaidProductPlacement" = false
+        """
+    ads_query = f"""
+        SELECT
+                SUM(CAST(v."videoViewCount" AS FLOAT)) FILTER (WHERE TO_TIMESTAMP("videoPublishedAt", 'YYYY-MM-DD') >= CURRENT_DATE - INTERVAL '90 days') AS viewcount,
+                SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE TO_TIMESTAMP("videoPublishedAt", 'YYYY-MM-DD') >= CURRENT_DATE - INTERVAL '90 days') AS likecount,
+                SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE TO_TIMESTAMP("videoPublishedAt", 'YYYY-MM-DD') >= CURRENT_DATE - INTERVAL '90 days') AS commentcount,
+                COUNT(*) FILTER (WHERE TO_TIMESTAMP("videoPublishedAt", 'YYYY-MM-DD') >= CURRENT_DATE - INTERVAL '90 days') AS videocount
+        FROM public."Video" v
+        LEFT JOIN public."Channel" c
+        ON v."channel_id" = c."id"
+        WHERE v."channel_id" = '{name_to_id[channel_name]}' AND v."hasPaidProductPlacement" = true
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
-        if df.empty:
+        noads_df = pd.read_sql(noads_query, db_engine)
+        ads_df = pd.read_sql(ads_query, db_engine)
+        if noads_df.empty or ads_df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
-
+        
+        # 영상 수
+        video_count = int(noads_df.iloc[0]['videocount']) if noads_df.iloc[0]['videocount'] != None else 0
+        ads_video_count = int(ads_df.iloc[0]['videocount']) if ads_df.iloc[0]['videocount'] != None else 0
+        # 업데이트 주기
+        period = round(video_count/3, 1)
+        ads_period = round(ads_video_count/3, 1)
+        # 평균 조회수
+        view_count = int(noads_df.iloc[0]['viewcount'])//video_count if video_count != 0 else 0   # 전체 조회수
+        ads_view_count = int(ads_df.iloc[0]['viewcount'])//ads_video_count if ads_video_count != 0 else 0   # 광고 영상 조회수   
+        # 평균 좋아요 비율
+        like_ratio = noads_df.iloc[0]['likecount']/video_count*100 if video_count !=0 else 0    # 전체 좋아요 합산
+        ads_like_ratio = ads_df.iloc[0]['likecount']/ads_video_count*100 if ads_video_count != 0 else 0    # 광고 영상 좋아요 합산
+        # 평균 댓글 비율
+        comment_ratio = noads_df.iloc[0]['commentcount']/video_count*100 if video_count !=0 else 0 # 전체 댓글 합산
+        ads_comment_ratio = ads_df.iloc[0]['commentcount']/ads_video_count*100 if ads_video_count != 0 else 0 # 광고 영상 좋아요 합산산
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     
     return [{
-        "영상 수": {"일반 영상":..., "광고 영상":..., "비교":"-"},
-         "업데이트 주기": {"일반 영상":..., "광고 영상":..., "비교":"-"},
-         "평균 조회수": {"일반 영상":..., "광고 영상":..., "비교":...},
-         "평균 좋아요 비율": {"일반 영상":..., "광고 영상":..., "비교":...},
-         "평균 댓글 비율": {"일반 영상":..., "광고 영상":..., "비교":...}
+        "영상 수": {"일반 영상":f"{video_count:,}개", "광고 영상":f"{ads_video_count:,}개", "비교":"-"},
+         "업데이트 주기": {"일반 영상":f"월 {period}개", "광고 영상":f"월 {ads_period}개", "비교":"-"},
+         "평균 조회수": {"일반 영상":f"{view_count:,}", "광고 영상":f"{ads_view_count:,}", "비교":f"{view_count-ads_view_count:,}"},
+         "평균 좋아요 비율": {"일반 영상":f"{round(like_ratio,2)}%", "광고 영상":f"{round(ads_like_ratio,2)}%", "비교":f"{round(like_ratio-ads_like_ratio, 2)}%"},
+         "평균 댓글 비율": {"일반 영상":f"{round(comment_ratio,2)}%", "광고 영상":f"{round(ads_comment_ratio,2)}%", "비교":f"{round(comment_ratio-ads_comment_ratio,2)}%"}
          }]
 
 # 광고 영상 성적
