@@ -2,6 +2,7 @@
 *.csv
 *.json
 *.csv
+*.ipynb
 
 # My custom
 .gihub
@@ -114,6 +115,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
-practice.ipynb
-.gitignore

@@ -203,7 +203,7 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
 @dashboard_router.get("profitability/ad-performance/{channel_name}")
 async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)):
     """
-    성과가 좋은 영상, 썸네일을 알려줌
+    성과가 좋은 광고 영상 정보 반환
     Parameters:
         channel_name: 유튜브 채널명
     Returns:
@@ -525,7 +525,7 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
 @dashboard_router.get("/performance/channel-banner/{channel_name}")
 async def get_channel_banner(channel_name: str, db_engine=Depends(get_db_engine)):
     """
-    채널 기본 정보 데이터 반환환
+    채널 기본 정보 데이터 반환
     Parameters:
         channel_name: 유튜브 채널명
     Returns:
@@ -568,7 +568,7 @@ async def get_channel_banner(channel_name: str, db_engine=Depends(get_db_engine)
 @dashboard_router.get("/performance/channel-performance/{channel_name}")
 async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_engine)):
     """
-    성과가 좋은 영상, 썸네일을 알려줌
+    성과가 좋은 영상 정보 반환
     Parameters:
         channel_name: 유튜브 채널명
     Returns:

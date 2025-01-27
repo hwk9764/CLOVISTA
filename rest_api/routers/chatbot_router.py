@@ -169,3 +169,22 @@ async def analyze_audience_engagement(channel_name: str, db_engine=Depends(get_d
     }
     
     return completion_executor.execute(request_data)
+
+###################
+## 채널 성과 API ##
+###################
+@chatbot_router.post("/performance/clova-analysis/{channel_name}")
+async def analyze_audience_engagement(channel_name: str, db_engine=Depends(get_db_engine)):
+    """
+    CLOVA X를 이용해 채널 성과과 분석 결과를 반환합니다.
+    Return:
+        - 논의 필요
+    """
+    query="""
+    """
+    
+    df = pd.read_sql(query, db_engine, params=(channel_name,))
+    
+    if df.empty:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return
