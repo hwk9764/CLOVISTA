@@ -3,20 +3,11 @@ import pandas as pd
 
 dashboard_router = APIRouter()
 
-# channel_name - id 대응 딕셔너리
-channel_query = f"""
-        select "id", "channel_name""
-        from "channel"
-        """
-channel_id_df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-dict = 
-
 def get_db_engine(request: Request):
     """
     FastAPI의 상태 객체에서 DB 엔진을 가져옵니다.
     """
     return request.app.state.db_engine
-
 
 ###################
 ## 채널 수익성 API ##
@@ -46,7 +37,7 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
         WHERE "name" = {channel_name}
         """
         df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         # 전처리 코드 추가
         viewcount = int(df.iloc[0]['viewCount'])
