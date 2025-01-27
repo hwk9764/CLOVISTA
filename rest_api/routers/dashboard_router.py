@@ -194,7 +194,7 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
 
 # 광고 영상 성적
 @dashboard_router.get("profitability/ad-performance/{channel_name}")
-async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_engine)):
+async def get_ads_performance(channel_name: str, db_engine=Depends(get_db_engine)):
     """
     method 설명
     Parameters:
