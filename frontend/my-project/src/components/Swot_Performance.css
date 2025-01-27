@@ -1,10 +1,10 @@
 .performance-container {
-    text-align: center;
-    margin-top: 50px;
-    background: linear-gradient(to bottom, #e8f5c8, #d2edc4);
-    padding: 50px;
-    border-radius: 10px;
-  }
+  text-align: center;
+  margin-top: 50px;
+  background: linear-gradient(to bottom, #e8f5c8, #d2edc4);
+  padding: 50px;
+  border-radius: 10px;
+}
   
   .grid-container {
     display: grid;
@@ -19,47 +19,9 @@
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
-  
-  .bar-chart {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+  canvas {
     margin-top: 20px;
   }
-  
-  .bar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 16px;
-  }
-  
-  .bar span {
-    width: 200px;
-    text-align: left;
-    font-weight: bold;
-  }
-  
-  .bar-fill {
-    height: 25px;
-    border-radius: 15px;
-    background-color: #c8f5a8;
-  }
-  
-  .my-channel .bar-fill {
-    width: 80%;
-    background-color: #c8f5a8;
-  }
-  
-  .competitor-channel .bar-fill {
-    width: 50%;
-    background-color: #f5d6a8;
-  }
-  
-  .bar-value {
-    font-weight: bold;
-  }
-  
   .video-list {
     display: flex;
     justify-content: center;
@@ -81,16 +43,27 @@
     border-radius: 10px;
   }
   
-  .video-title {
-    font-size: 16px;
-    font-weight: bold;
+  .video-info {
     margin-top: 10px;
+    text-align: left;
   }
   
-  .video-stats {
+  .video-detail {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
     font-size: 14px;
     color: #555;
-    margin-top: 5px;
+  }
+  
+  .video-detail span:first-child {
+    font-weight: bold;
+    flex: 1; /* 왼쪽 영역 넓이 균등화 */
+  }
+  
+  .video-detail span:last-child {
+    text-align: right;
+    flex: 1; /* 오른쪽 영역 넓이 균등화 */
   }
   
 /* Toggle 버튼 영역 */
@@ -112,10 +85,6 @@
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.toggle-button:hover {
-  background-color: #d2edc4;
-  color: #333;
-}
 
 .toggle-button.active {
   background-color: #d2edc4;
