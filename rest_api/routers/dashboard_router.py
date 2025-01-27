@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 import pandas as pd
+import psycopg2
 
 dashboard_router = APIRouter()
 
@@ -8,6 +9,21 @@ def get_db_engine(request: Request):
     FastAPI의 상태 객체에서 DB 엔진을 가져옵니다.
     """
     return request.app.state.db_engine
+
+conn = psycopg2.connect(
+        host="10.28.224.177",
+        port="30634",
+        user="postgres",
+        password="0104",
+        database="postgres"
+    )
+query = f"""
+        SELECT "id", "name"
+        FROM "Channel";
+        """
+with conn.cursor() as cur:
+    id_df = pd.read_sql(query, conn)
+    id_name_pair = {name:int(id) for name, id in zip(id_df['name'].values, id_df['id'].values)}
 
 ###################
 ## 채널 수익성 API ##
@@ -34,9 +50,9 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
             (SELECT AVG(CAST("viewCount" as float)) FROM "Channel") as avg_viewcount,
             (SELECT AVG(CAST("Donation" as float)) FROM "Channel") as avg_donation
         FROM public."Channel"
-        WHERE "name" = {channel_name}
+        WHERE "id" = '{id_name_pair[channel_name]}'
         """
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        df = pd.read_sql(channel_query, db_engine)
         if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         # 전처리 코드 추가
@@ -44,18 +60,18 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
         avg_viewcount = int(df.iloc[0]['avg_viewcount'])
         view_profit_user = (viewcount*2, int(viewcount*4.5))
         view_profit_avg = (avg_viewcount*2, int(avg_viewcount*4.5))
-        donation_profit_user = int(df.iloc[0]['Donation'])
-        donation_profit_avg = int(df.iloc[0]['avg_donation'])
-        
+        #donation_profit_user = int(df.iloc[0]['Donation'])
+        #donation_profit_avg = int(df.iloc[0]['avg_donation'])
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-    return [
-            {"조회수_유저": view_profit_user},
-            {"조회수_평균": view_profit_avg},
-            {"후원_유저": donation_profit_user},
-            {"후원_평균": donation_profit_avg}
-        ]
+    return [{
+        "조회수_유저": view_profit_user,
+        "조회수_평균": view_profit_avg,
+        #"후원_유저": donation_profit_user,
+        #"후원_평균": donation_profit_avg
+        }]
 
 @dashboard_router.get("/profitability/ad-video-status/{channel_name}")
 async def get_ad_video_status(channel_name: str, db_engine=Depends(get_db_engine)):
@@ -85,7 +101,7 @@ async def get_ad_video_status(channel_name: str, db_engine=Depends(get_db_engine
     """
     try:
         df = pd.read_sql(query, db_engine, params=(channel_name,))
-        if not df:
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         ad_count = df.iloc[0]['ad_count']
         total_views = df.iloc[0]['total_views']
@@ -130,22 +146,22 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
         WHERE "channel_id" = '{channel_id}'
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     
-    return [
-        {"항목": "영상 수", "일반 영상": "368", "광고 영상": "35", "비교": "-"},
-        {"항목": "업데이트 주기", "일반 영상": "4개/월", "광고 영상": "2개/월", "비교": "-"},
-        {"항목": "평균 조회수", "일반 영상": "100,000", "광고 영상": "20,000", "비교": "-80,000"},
-        {"항목": "평균 좋아요 비율", "일반 영상": "0.2%", "광고 영상": "0.001%", "비교": "-0.199%"},
-        {"항목": "평균 댓글 비율", "일반 영상": "0.01%", "광고 영상": "0.005%", "비교": "-0.005%"}
-    ]
+    return [{
+        "영상 수": {"일반 영상":..., "광고 영상":..., "비교":"-"},
+         "업데이트 주기": {"일반 영상":..., "광고 영상":..., "비교":"-"},
+         "평균 조회수": {"일반 영상":..., "광고 영상":..., "비교":...},
+         "평균 좋아요 비율": {"일반 영상":..., "광고 영상":..., "비교":...},
+         "평균 댓글 비율": {"일반 영상":..., "광고 영상":..., "비교":...}
+         }]
 
-# 광고 영상 성적적
+# 광고 영상 성적
 @dashboard_router.get("profitability/ad-performance/{channel_name}")
 async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_engine)):
     """
@@ -164,8 +180,8 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
         WHERE "channel_id" = '{channel_id}'
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         
     except Exception as e:
@@ -201,7 +217,7 @@ async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_en
     """
     try:
         df = pd.read_sql(query, db_engine, params=(channel_name,))
-        if not df:
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         
         total_views = df.iloc[0]['total_views']
@@ -237,8 +253,8 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
         WHERE "channel_id" = '{channel_id}'
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         
     except Exception as e:
@@ -264,8 +280,8 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
         WHERE "channel_id" = '{channel_id}'
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         
     except Exception as e:
@@ -296,8 +312,8 @@ async def get_channel_banner(channel_name: str, db_engine=Depends(get_db_engine)
         WHERE "channel_id" = '{channel_id}'
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         
     except Exception as e:
@@ -323,8 +339,8 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
         WHERE "channel_id" = '{channel_id}'
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         
     except Exception as e:
@@ -350,8 +366,8 @@ async def get_channel_viewcount(channel_name: str, db_engine=Depends(get_db_engi
         WHERE "channel_id" = '{channel_id}'
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         
     except Exception as e:
@@ -377,8 +393,8 @@ async def get_channel_growth(channel_name: str, db_engine=Depends(get_db_engine)
         WHERE "channel_id" = '{channel_id}'
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         
     except Exception as e:
@@ -404,8 +420,8 @@ async def get_channel_feature(channel_name: str, db_engine=Depends(get_db_engine
         WHERE "channel_id" = '{channel_id}'
         """
     try:
-        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
-        if not df:
+        df = pd.read_sql(channel_query, db_engine, params=(channel_name))
+        if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
         
     except Exception as e:
