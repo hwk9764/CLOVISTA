@@ -3,6 +3,13 @@ import pandas as pd
 
 dashboard_router = APIRouter()
 
+# channel_name - id 대응 딕셔너리
+channel_query = f"""
+        select "id", "channel_name""
+        from "channel"
+        """
+channel_id_df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+dict = 
 
 def get_db_engine(request: Request):
     """
@@ -28,7 +35,7 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
             {"후원_평균": 123,456}
         ]
     """
-    
+
     # 코드 테스트할 때는 try, except 빼는 것을 추천
     try:
         channel_query = f"""
@@ -135,9 +142,7 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
         df = pd.read_sql(channel_query, db_engine, params=[channel_name])
         if not df:
             raise HTTPException(status_code=404, detail="Channel not found.")
-        
-        
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     
@@ -149,6 +154,32 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
         {"항목": "평균 댓글 비율", "일반 영상": "0.01%", "광고 영상": "0.005%", "비교": "-0.005%"}
     ]
 
+# 광고 영상 성적적
+@dashboard_router.get("profitability/ad-performance/{channel_name}")
+async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_engine)):
+    """
+    method 설명
+    Parameters:
+        
+    Returns:
+        
+    """
+    channel_query = f"""
+        SELECT 
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+        FROM public."Video"
+        JOIN 
+        WHERE "channel_id" = '{channel_id}'
+        """
+    try:
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    return
 
 ###################
 ## 시청자 관계 API ##
@@ -255,9 +286,63 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
 ## 채널 성과 API ##
 ###################
 
-# 채널 성적
+# 채널 배너
+@dashboard_router.get("performance/channel-banner/{channel_name}")
+async def get_channel_banner(channel_name: str, db_engine=Depends(get_db_engine)):
+    """
+    method 설명
+    Parameters:
+        
+    Returns:
+        
+    """
+    channel_query = f"""
+        SELECT 
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+        FROM public."Video"
+        JOIN 
+        WHERE "channel_id" = '{channel_id}'
+        """
+    try:
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    return
+
+# 많이 사랑 받는 영상 / 많이 사랑 받는 썸네일
 @dashboard_router.get("performance/channel-performance/{channel_name}")
 async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_engine)):
+    """
+    method 설명
+    Parameters:
+        
+    Returns:
+        
+    """
+    channel_query = f"""
+        SELECT 
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
+                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+        FROM public."Video"
+        JOIN 
+        WHERE "channel_id" = '{channel_id}'
+        """
+    try:
+        df = pd.read_sql(channel_query, db_engine, params=[channel_name])
+        if not df:
+            raise HTTPException(status_code=404, detail="Channel not found.")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    return
+
+# 채널 평균 조회수
+@dashboard_router.get("performance/channel-viewcount/{channel_name}")
+async def get_channel_viewcount(channel_name: str, db_engine=Depends(get_db_engine)):
     """
     method 설명
     Parameters:
