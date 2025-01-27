@@ -176,7 +176,7 @@ async def analyze_audience_engagement(channel_name: str, db_engine=Depends(get_d
 @chatbot_router.post("/performance/clova-analysis/{channel_name}")
 async def analyze_audience_engagement(channel_name: str, db_engine=Depends(get_db_engine)):
     """
-    CLOVA X를 이용해 채널 성과과 분석 결과를 반환합니다.
+    CLOVA X를 이용해 채널 성과 분석 결과를 반환합니다.
     Return:
         - 논의 필요
     """
