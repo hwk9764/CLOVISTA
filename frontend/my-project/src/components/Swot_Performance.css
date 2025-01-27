@@ -93,3 +93,31 @@
     margin-top: 5px;
   }
   
+/* Toggle 버튼 영역 */
+.toggle-buttons {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+  padding-left: 20px;
+}
+
+.toggle-button {
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px 20px;
+  margin-right: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.toggle-button:hover {
+  background-color: #d2edc4;
+  color: #333;
+}
+
+.toggle-button.active {
+  background-color: #d2edc4;
+  font-weight: bold;
+}

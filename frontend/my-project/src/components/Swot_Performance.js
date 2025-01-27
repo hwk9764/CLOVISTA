@@ -1,9 +1,34 @@
 import React from 'react';
 import './Swot_Performance.css';
+import { useNavigate } from 'react-router-dom';
+
 
 const Performance = () => {
+  const navigate = useNavigate();
+  
   return (
     <div className="performance-container">
+      {/* Toggle 버튼 영역 */}
+      <div className="toggle-buttons">
+        <button
+          className="toggle-button active"
+          onClick={() => navigate('/main/Swot/Performance')}
+        >
+          채널 성과
+        </button>
+        <button
+          className="toggle-button"
+          onClick={() => navigate('/main/Swot/Engagement')}
+        >
+          시청자 참여도
+        </button>
+        <button
+          className="toggle-button"
+          onClick={() => navigate('/main/Swot/Revenue')}
+        >
+          채널 수익성
+        </button>
+      </div>
       <div className="grid-container">
         <div className="profile-section">
           <div className="profile-content">
