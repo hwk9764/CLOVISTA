@@ -139,8 +139,7 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
     """
     channel_query = f"""
         SELECT 
-                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
-                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+            SUM(CASE WHEN "hasPaidProductPlacement" = true THEN 1 ELSE 0 END) AS adsViewCount,
         FROM public."Video"
         JOIN 
         WHERE "channel_id" = '{channel_id}'
