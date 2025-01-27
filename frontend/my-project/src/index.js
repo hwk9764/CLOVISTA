@@ -25,8 +25,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/main/sense" element={<Sense />} />
         <Route path="/main/senselist" element={<Sense_List />} />
         <Route path="/main/sense/:id" element={<Sense_Result />} />
-        <Route path="main/Swot/Performance" element={<Swot_Performance />} />
-        <Route path="main/Swot/Revenue" element={<Swot_Revenue />} />
+        <Route path="/main/Swot/Performance" element={<Swot_Performance />} />
+        <Route path="/main/Swot/Revenue" element={<Swot_Revenue />} />
       </Routes>
     </Router>
   </GoogleOAuthProvider>
