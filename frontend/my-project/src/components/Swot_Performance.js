@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import './Swot_Performance.css';
 import Chart from "chart.js/auto";
 import { useNavigate } from 'react-router-dom';
-
+import axios from "axios";
 
 const Performance = () => {
   const navigate = useNavigate();
