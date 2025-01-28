@@ -153,23 +153,51 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
          "평균 댓글 비율": {"일반 영상":"0.01%", "광고 영상":"0.005%", "비교":"-0.005%"}
          }]
     """
+    # 최근 90일
+    # query = f"""
+    #     WITH compare AS (
+    #             SELECT
+    #                     SUM(CAST(v."videoViewCount" AS FLOAT)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS viewcount,
+    #                     SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS likecount,
+    #                     SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS commentcount,
+    #                     COUNT(*) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS videocount
+    #             FROM public."Video" v
+    #             LEFT JOIN public."Channel" c
+    #             ON v."channel_id" = c."id"
+    #             WHERE v."channel_id" = '{name_to_id[channel_name]}' AND v."hasPaidProductPlacement" = false
+    #             UNION ALL
+    #             SELECT
+    #                     SUM(CAST(v."videoViewCount" AS FLOAT)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS viewcount,
+    #                     SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS likecount,
+    #                     SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS commentcount,
+    #                     COUNT(*) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS videocount
+    #             FROM public."Video" v
+    #             LEFT JOIN public."Channel" c
+    #             ON v."channel_id" = c."id"
+    #             WHERE v."channel_id" = '{name_to_id[channel_name]}' AND v."hasPaidProductPlacement" = true
+    #     )
+    #     SELECT *
+    #     FROM compare
+    #     """
+    
+    # 전체
     query = f"""
         WITH compare AS (
                 SELECT
-                        SUM(CAST(v."videoViewCount" AS FLOAT)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS viewcount,
-                        SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS likecount,
-                        SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS commentcount,
-                        COUNT(*) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS videocount
+                        SUM(CAST(v."videoViewCount" AS FLOAT))  AS viewcount,
+                        SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS likecount,
+                        SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS commentcount,
+                        COUNT(*) AS videocount
                 FROM public."Video" v
                 LEFT JOIN public."Channel" c
                 ON v."channel_id" = c."id"
                 WHERE v."channel_id" = '{name_to_id[channel_name]}' AND v."hasPaidProductPlacement" = false
                 UNION ALL
                 SELECT
-                        SUM(CAST(v."videoViewCount" AS FLOAT)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS viewcount,
-                        SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS likecount,
-                        SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS commentcount,
-                        COUNT(*) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS videocount
+                        SUM(CAST(v."videoViewCount" AS FLOAT)) AS viewcount,
+                        SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS likecount,
+                        SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS commentcount,
+                        COUNT(*) AS videocount
                 FROM public."Video" v
                 LEFT JOIN public."Channel" c
                 ON v."channel_id" = c."id"
@@ -241,6 +269,7 @@ async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)
             }
         }
     """
+    # 최근 90일 필터 257에 붙이기 AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
     performance_query = f"""
             WITH metrics AS (
                 SELECT 
@@ -253,7 +282,7 @@ async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)
                     ROUND((CAST("videoLikeCount" AS FLOAT) / CAST("videoViewCount" AS FLOAT) * 100)::numeric, 2) as like_rate,
                     ROUND(CAST("videoCTR" AS FLOAT)::numeric, 2) as ctr
                 FROM public."Video"
-                WHERE "channel_id" = '{name_to_id[channel_name]}' AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days' AND "hasPaidProductPlacement" = true
+                WHERE "channel_id" = '{name_to_id[channel_name]}'  AND "hasPaidProductPlacement" = true 
             )
             (SELECT 
                 "videoTitle" as "제목",
