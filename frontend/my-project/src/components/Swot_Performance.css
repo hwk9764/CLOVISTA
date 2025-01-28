@@ -4,24 +4,54 @@
   background: linear-gradient(to bottom, #e8f5c8, #d2edc4);
   padding: 50px;
   border-radius: 10px;
+  width: 90%;  /* ✅ 전체 너비 균형 조정 */
+  max-width: 1500px;
+  margin-left: auto;
+  margin-right: auto;
 }
   
-  .grid-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 20px;
-  }
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);  /* ✅ 2열 배치 */
+  grid-template-rows: auto;
+  gap: 30px;  /* ✅ 카드 간격 증가 */
+  justify-content: center;
+  align-items: stretch; /* ✅ 모든 카드 높이 맞춤 */
+  width: 100%;
+  max-width: 1500px;
+  margin: 0 auto;
+}
   
-  .profile-section, .graph-section, .popular-videos, .popular-thumbnails {
-    background-color: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  canvas {
-    margin-top: 20px;
-  }
+.profile-section, 
+.graph-section, 
+.popular-videos, 
+.popular-thumbnails, 
+.graph-card, 
+.upload-cycle, 
+.activation-metric {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  min-width: 500px; /* ✅ 카드 최소 크기 설정 */
+  text-align: center;
+}
+
+.profile-section {
+  display: flex;
+  align-items: center;  /* ✅ 세로 정렬 */
+  justify-content: center;
+  height: 100%;  /* ✅ 오른쪽 카드와 길이 맞추기 */
+}
+
+canvas {
+  margin-top: 20px;
+  height: auto !important;
+  width: 100% !important;
+  min-height: 350px; /* ✅ 그래프 가려지는 문제 해결 */
+}
+
   .video-list {
     display: flex;
     justify-content: center;
@@ -89,4 +119,28 @@
 .toggle-button.active {
   background-color: #d2edc4;
   font-weight: bold;
+}
+
+.graph-card h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.upload-cycle {
+  grid-column: 1 / 2;  /* ✅ 왼쪽 배치 */
+}
+
+.activation-metric {
+  grid-column: 2 / 3;  /* ✅ 오른쪽 배치 */
+  align-items: stretch;  /* ✅ 높이 조정 */
+}
+
+/* ✅ 차트 설명 정렬 */
+.upload-cycle p, 
+.activation-metric p {
+  font-size: 14px;
+  color: #555;
+  margin-top: 10px;
+  text-align: left;
 }
