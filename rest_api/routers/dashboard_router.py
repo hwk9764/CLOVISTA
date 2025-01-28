@@ -425,7 +425,8 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
         competitor_live_query = f"""
             SELECT COALESCE(AVG("LiveBroadcastingCount"), 0) as avg_competitor_live
             FROM public."Channel"
-            WHERE CAST("subscriberCount" AS FLOAT) BETWEEN CAST({subscriber_count} AS FLOAT) * 0.5 AND CAST({subscriber_count} AS FLOAT) * 1.5
+            WHERE CAST("subscriberCount" AS FLOAT) 
+            BETWEEN CAST({subscriber_count} AS FLOAT) - 500000 AND CAST({subscriber_count} AS FLOAT) + 500000
             AND "id" != '{name_to_id[channel_name]}'
         """
         
@@ -446,7 +447,8 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
                     COUNT(*) as reply_count
                 FROM public."Channel" ch
                 JOIN public."Comments" cm ON strpos(cm."replies", '@' || ch."DisplayName") > 0
-                WHERE CAST(ch."subscriberCount" AS FLOAT) BETWEEN CAST({subscriber_count} AS FLOAT) * 0.5 AND CAST({subscriber_count} AS FLOAT) * 1.5
+                WHERE CAST(ch."subscriberCount" AS FLOAT) 
+                BETWEEN CAST({subscriber_count} AS FLOAT) - 500000 AND CAST({subscriber_count} AS FLOAT) + 500000
                 AND ch."id" != '{name_to_id[channel_name]}'
                 GROUP BY ch."id"
             ) subquery
