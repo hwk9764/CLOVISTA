@@ -339,7 +339,7 @@ async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)
 @dashboard_router.get("/audience/engagement/{channel_name}")
 async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_engine)):
     """
-    시청자의 채널 참여도 데이터를 반환
+    시청자의 채널 참여도 데이터를 반환 -> 90일 기준
     Parameters:
         channel_name: 유튜브 채널명
     Returns:
@@ -359,18 +359,20 @@ async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_en
                 SUM(CAST(v."videoShareCount" AS INTEGER)) as total_shares
             FROM public."Video" v
             WHERE v."channel_id" = '{name_to_id[channel_name]}'
+            AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
         """
         df = pd.read_sql(engagement_query, db_engine)
         
-        total_views = df.iloc[0]['total_views'] #수정
-        total_likes = df.iloc[0]['total_likes']
-        total_comments = df.iloc[0]['total_comments']
-        total_shares = df.iloc[0]['total_shares']
+        total_views = float(df.iloc[0]['total_views']) if df.iloc[0]['total_views'] is not None else 0
+        total_likes = float(df.iloc[0]['total_likes']) if df.iloc[0]['total_likes'] is not None else 0
+        total_comments = float(df.iloc[0]['total_comments']) if df.iloc[0]['total_comments'] is not None else 0
+        total_shares = float(df.iloc[0]['total_shares']) if df.iloc[0]['total_shares'] is not None else 0
         
         like_ratio = (total_likes / total_views * 100) if total_views > 0 else 0
         comment_ratio = (total_comments / total_views * 100) if total_views > 0 else 0
         share_ratio = (total_shares / total_views * 100) if total_views > 0 else 0
     
+
     except KeyError:
         raise HTTPException(status_code=404, detail="Channel not found.")
     except Exception as e:
@@ -479,9 +481,9 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
     Returns:
         [{
             "타겟 시청자 특성": "남성", "10~20대", <- 수정
-            "키워드": "178만"명, <- Video-tag, description 해시태그 각 키워드 개수 센 후 랭킹, 상위 n개 뽑기
-            "영상 업로드 시간": 12, 1, <- 다시 수정
-            "영상 시청 시간": 12, 1, <- 다시 수정
+            "키워드": "178만"명, <- Video-tag, description 해시태그 각 키워드 개수 센 후 랭킹, 상위 n개 뽑기, 90일 기준준
+            "영상 업로드 시간": 12, 1, <- 다시 수정, 90일 기준
+            "영상 시청 시간": 12, 1, <- 다시 수정, 90일 기준
             "일반/광고 영상 비율" : 0.3 <- 광고영상이 전체의 30%
         }]
     """
@@ -492,6 +494,7 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
                 v."videoDescription"
             FROM public."Video" v
             WHERE v."channel_id" = '{name_to_id[channel_name]}'
+            AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
         """
         video_df = pd.read_sql(video_query, db_engine)
         
@@ -513,12 +516,13 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
                 SUBSTRING(v."videoPublishedAt", 12, 2) AS upload_hour
             FROM public."Video" v
             WHERE v."channel_id" = '{name_to_id[channel_name]}'
+            AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
             GROUP BY upload_hour
             ORDER BY COUNT(*) DESC
-            LIMIT 1
+            LIMIT 3
         """
         upload_time_df = pd.read_sql(upload_time_query, db_engine)
-        upload_time_list = [int(upload_time_df.iloc[0]['upload_hour']), int(upload_time_df.iloc[0]['upload_hour']) + 1]
+        upload_time_list = [[int(row['upload_hour']), int(row['upload_hour']) + 1] for _, row in upload_time_df.iterrows()]
 
         view_time_query = f"""
             SELECT 
@@ -527,12 +531,13 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
             FROM public."Comments" c
             JOIN public."Video" v ON c."vId" = v."vId"
             WHERE v."channel_id" = '{name_to_id[channel_name]}'
+            AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
             GROUP BY view_hour
             ORDER BY comment_count DESC
-            LIMIT 1
+            LIMIT 3
         """
         view_time_df = pd.read_sql(view_time_query, db_engine)
-        view_time_list = [int(view_time_df.iloc[0]['view_hour']), int(view_time_df.iloc[0]['view_hour']) + 1]
+        view_time_list = [[int(row['view_hour']), int(row['view_hour']) + 1] for _, row in view_time_df.iterrows()]
 
         # 일반/광고 영상 비율
         ad_video_query = f"""
@@ -605,34 +610,34 @@ async def get_channel_banner(channel_name: str, db_engine=Depends(get_db_engine)
 @dashboard_router.get("/performance/channel-performance/{channel_name}")
 async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_engine)):
     """
-    성과가 좋은 영상 정보 반환
-    Parameters:
-        channel_name: 유튜브 채널명
-    Returns:
+        성과가 좋은 영상 정보 반환
+        Parameters:
+            channel_name: 유튜브 채널명
+        Returns:
+            {
+    "많은 사랑을 받은 영상": [
         {
-  "많은 사랑을 받은 영상": [
-    {
-      "제목": "모텔 주차장을 지나 2평짜리 고시원에 사는 그녀",
-      "썸네일": "https://i.ytimg.com/vi/6cvjmXjB-N0/default.jpg",
-      "조회수": "453만",
-      "평균 조회율": "임시값%",
-      "댓글 참여율": "0.05%",
-      "좋아요 참여율": "0.72%",
-      "노출 클릭률": "6.8%"
-    } * 3개
-  ],
-  "많은 사랑을 받은 썸네일": [
-    {
-      "제목": "대학 축제 온 30대 처음 봐?",
-      "썸네일": "https://i.ytimg.com/vi/OkT1luM9krg/default.jpg",
-      "조회수": "21.2만",
-      "평균 조회율": "임시값%",
-      "댓글 참여율": "0.12%",
-      "좋아요 참여율": "1.47%",
-      "노출 클릭률": "9.9%"
-    } * 3개
-  ]
-}
+        "제목": "모텔 주차장을 지나 2평짜리 고시원에 사는 그녀",
+        "썸네일": "https://i.ytimg.com/vi/6cvjmXjB-N0/default.jpg",
+        "조회수": "453만",
+        "평균 조회율": "임시값%",
+        "댓글 참여율": "0.05%",
+        "좋아요 참여율": "0.72%",
+        "노출 클릭률": "6.8%"
+        } * 3개
+    ],
+    "많은 사랑을 받은 썸네일": [
+        {
+        "제목": "대학 축제 온 30대 처음 봐?",
+        "썸네일": "https://i.ytimg.com/vi/OkT1luM9krg/default.jpg",
+        "조회수": "21.2만",
+        "평균 조회율": "임시값%",
+        "댓글 참여율": "0.12%",
+        "좋아요 참여율": "1.47%",
+        "노출 클릭률": "9.9%"
+        } * 3개
+    ]
+    }
     """
     video_performance_query = f"""
         WITH video_metrics AS (

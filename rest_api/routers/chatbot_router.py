@@ -174,17 +174,61 @@ async def analyze_audience_engagement(channel_name: str, db_engine=Depends(get_d
 ## 채널 성과 API ##
 ###################
 @chatbot_router.post("/performance/clova-analysis/{channel_name}")
-async def analyze_audience_engagement(channel_name: str, db_engine=Depends(get_db_engine)):
+async def analyze_performance_engagement(channel_name: str, db_engine=Depends(get_db_engine)):
     """
     CLOVA X를 이용해 채널 성과 분석 결과를 반환합니다.
     Return:
         - 논의 필요
     """
-    query="""
+    from prs_cns.prompt import PROMPT_performance
+
+    query = """
+        WITH video_stats AS (
+            SELECT 
+                c.name,
+                COUNT(*) FILTER (WHERE CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '180 days') as uploads_6months,
+                AVG(CAST(v."videoViewCount" AS FLOAT)) as avg_views
+            FROM public."Channel" c
+            JOIN public."Video" v ON c.id = v.channel_id
+            GROUP BY c.name
+        )
+        SELECT 
+            uploads_6months as monthly_uploads,
+            avg_views
+        FROM video_stats 
+        WHERE name = %s
     """
     
     df = pd.read_sql(query, db_engine, params=(channel_name,))
     
     if df.empty:
         raise HTTPException(status_code=404, detail="Channel not found")
-    return
+        
+    metrics = {
+        'monthly_uploads': df.iloc[0]['monthly_uploads'],
+        'avg_views': df.iloc[0]['avg_views']
+    }
+    
+    completion_executor = CompletionExecutor(
+        host='https://clovastudio.stream.ntruss.com',
+        api_key='Bearer nv-f5786fde571f424786ed0823986ca992h3P1',
+        request_id='309fa53d16a64d7c9c2d8f67f74ac70d'
+    )
+
+    formatted_prompt = [
+        PROMPT_performance[0],
+        {"role": "user", "content": PROMPT_performance[1]['content'].format(**metrics)}
+    ]
+    
+    request_data = {
+        'messages': formatted_prompt,
+        'topP': 0.8,
+        'maxTokens': 2000,
+        'temperature': 0.15,
+        'repeatPenalty': 5.0,
+        'stopBefore': [],
+        'includeAiFilters': False,
+        'seed': 0
+    }
+    
+    return completion_executor.execute(request_data)
