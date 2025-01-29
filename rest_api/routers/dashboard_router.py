@@ -74,8 +74,8 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
         avg_viewcount = int(df.iloc[0]['avg_viewcount'])
         view_profit_user = (viewcount*2, int(viewcount*4.5))
         view_profit_avg = (avg_viewcount*2, int(avg_viewcount*4.5))
-        #donation_profit_user = int(df.iloc[0]['Donation'])
-        #donation_profit_avg = int(df.iloc[0]['avg_donation'])
+        donation_profit_user = int(df.iloc[0]['Donation'])
+        donation_profit_avg = int(df.iloc[0]['avg_donation'])
 
     except KeyError:
         raise HTTPException(status_code=404, detail="Channel not found.")
@@ -85,8 +85,8 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
     return [{
         "조회수_유저": view_profit_user,
         "조회수_평균": view_profit_avg,
-        "후원_유저": "임시값",
-        "후원_평균": "임시값"
+        "후원_유저": donation_profit_user,
+        "후원_평균": donation_profit_avg
         }]
 
 @dashboard_router.get("/profitability/ad-video-status/{channel_name}")
@@ -252,7 +252,7 @@ async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)
                 "썸네일": "https://i.ytimg.com/vi/IXITajnvLEc/default.jpg",
                 "업로드 날짜": "2024-11-14",
                 "조회수": "92.2만",
-                "평균 조회율": "임시값",
+                "평균 조회율": "48.5%",
                 "댓글 참여율": "0.15%",
                 "좋아요 참여율": "2.15%",
                 "노출 클릭률": "9.0%"
@@ -262,14 +262,14 @@ async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)
                 "썸네일": "https://i.ytimg.com/vi/7eMS1oMpUSc/default.jpg",
                 "업로드 날짜": "2025-01-06",
                 "조회수": "28.6만",
-                "평균 조회율": "임시값",
+                "평균 조회율": "39.8%",
                 "댓글 참여율": "0.44%",
                 "좋아요 참여율": "1.42%",
                 "노출 클릭률": "7.2%"
             }
         }
     """
-    # 최근 90일 필터 257에 붙이기 AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
+    # 최근 90일 필터 where에 붙이기 AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
     performance_query = f"""
             WITH metrics AS (
                 SELECT 
@@ -277,7 +277,7 @@ async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)
                     "videoThumbnails",
                     CAST("videoPublishedAt" AS DATE) as date,
                     CAST("videoViewCount" AS FLOAT) as view_count,
-                    
+                    "videoAPV" as apv,
                     ROUND((CAST("commentCount" AS FLOAT) / CAST("videoViewCount" AS FLOAT) * 100)::numeric, 2) as comment_rate,
                     ROUND((CAST("videoLikeCount" AS FLOAT) / CAST("videoViewCount" AS FLOAT) * 100)::numeric, 2) as like_rate,
                     ROUND(CAST("videoCTR" AS FLOAT)::numeric, 2) as ctr
@@ -289,7 +289,7 @@ async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)
                 "videoThumbnails" as "썸네일",
                 date as "업로드 날짜",
                 view_count as "조회수",
-                
+                apv as "평균 조회율",
                 comment_rate as "댓글 참여율",
                 like_rate as "좋아요 참여율",
                 ctr as "노출 클릭률"
@@ -302,7 +302,7 @@ async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)
                 "videoThumbnails" as "썸네일",
                 date as "업로드 날짜",
                 view_count as "조회수",
-                
+                apv as "평균 조회율",
                 comment_rate as "댓글 참여율",
                 like_rate as "좋아요 참여율",
                 ctr as "노출 클릭률"
@@ -314,10 +314,10 @@ async def get_ad_performance(channel_name: str, db_engine=Depends(get_db_engine)
     try: #조회수 dailyChannel로 수정                        
         df = pd.read_sql(performance_query, db_engine)
         df["조회수"] = df["조회수"].apply(lambda x: simplify(x))
-        df.insert(3, "평균 조회율", "임시값") #수정
-        df["댓글 참여율"] = df["댓글 참여율"].apply(lambda x: f"{x}%")
-        df["좋아요 참여율"] = df["좋아요 참여율"].apply(lambda x: f"{x}%")
-        df["노출 클릭률"] = df["노출 클릭률"].apply(lambda x: f"{x}%")
+        df['평균 조회율'] = df['평균 조회율'].apply(lambda x:f"{convert_type(x)}%")
+        df["댓글 참여율"] = df["댓글 참여율"].apply(lambda x: f"{convert_type(x)}%")
+        df["좋아요 참여율"] = df["좋아요 참여율"].apply(lambda x: f"{convert_type(x)}%")
+        df["노출 클릭률"] = df["노출 클릭률"].apply(lambda x: f"{convert_type(x)}%")
         df = df[["제목", "썸네일", "업로드 날짜", "조회수", "평균 조회율", "댓글 참여율", "좋아요 참여율", "노출 클릭률"]]
 
         result = {
@@ -379,9 +379,9 @@ async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_en
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     
     return [{
-        "좋아요 비율": f"{like_ratio:.2f}%",
-        "댓글 비율": f"{comment_ratio:.2f}%",
-        "공유 비율": f"{share_ratio:.2f}%"
+        "좋아요 비율": f"{convert_type(like_ratio)}%",
+        "댓글 비율": f"{convert_type(comment_ratio)}%",
+        "공유 비율": f"{convert_type(share_ratio)}%"
     }]
 
 @dashboard_router.get("/audience/creator-communication/{channel_name}")
@@ -400,7 +400,7 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
         }]
     """
     try:
-        #채널의 구독자 수 범위 파악용
+        # 채널의 구독자 수 범위 파악용
         channel_info_query = f"""
             SELECT "subscriberCount", "DisplayName"
             FROM public."Channel"
@@ -486,7 +486,7 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
     Returns:
         [{
             "타겟 시청자 특성": "남성", "10~20대", <- 수정
-            "키워드": "178만"명, <- Video-tag, description 해시태그 각 키워드 개수 센 후 랭킹, 상위 n개 뽑기, 90일 기준준
+            "키워드": "178만"명, <- Video-tag, description 해시태그 각 키워드 개수 센 후 랭킹, 상위 n개 뽑기, 90일 기준
             "영상 업로드 시간": 12, 1, <- 다시 수정, 90일 기준
             "영상 시청 시간": 12, 1, <- 다시 수정, 90일 기준
             "일반/광고 영상 비율" : 0.3 <- 광고영상이 전체의 30%
@@ -560,7 +560,7 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
             "키워드": ", ".join([k for k, v in list(top_keywords.items())[5:11]if len(k) < 15]),
             "영상 업로드 시간": upload_time_list,
             "영상 시청 시간": view_time_list,
-            "일반/광고 영상 비율": f"{ad_ratio:.2%}"
+            "일반/광고 영상 비율": f"{convert_type(ad_ratio)}%"
         }]
         
     except KeyError:
@@ -582,7 +582,8 @@ async def get_channel_banner(channel_name: str, db_engine=Depends(get_db_engine)
     Returns:
         [{
             "채널 이름": "피식대학",
-            "구독자": "178만"명}, #수정, dailyChannel 최근 값으로로
+            "썸네일": "https://yt3.ggpht.com/FQ61Pjh2In6lt-nd0o6EtWyCRPIlopBzcm-Pz88CzRXE1gZQ-o1OnV8wL-9IzC4aRr52M6q4z8I=s88-c-k-c0x00ffffff-no-rj",
+            "구독자": "178만"명, #수정, dailyChannel 최근 값으로
             "동영상": "1.2천"개
         }]
     """
@@ -625,7 +626,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
         "제목": "모텔 주차장을 지나 2평짜리 고시원에 사는 그녀",
         "썸네일": "https://i.ytimg.com/vi/6cvjmXjB-N0/default.jpg",
         "조회수": "453만",
-        "평균 조회율": "임시값%",
+        "평균 조회율": "65.7%",
         "댓글 참여율": "0.05%",
         "좋아요 참여율": "0.72%",
         "노출 클릭률": "6.8%"
@@ -636,7 +637,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
         "제목": "대학 축제 온 30대 처음 봐?",
         "썸네일": "https://i.ytimg.com/vi/OkT1luM9krg/default.jpg",
         "조회수": "21.2만",
-        "평균 조회율": "임시값%",
+        "평균 조회율": "65.7%",
         "댓글 참여율": "0.12%",
         "좋아요 참여율": "1.47%",
         "노출 클릭률": "9.9%"
@@ -730,23 +731,52 @@ async def get_channel_viewcount(channel_name: str, db_engine=Depends(get_db_engi
     Returns:
         
     """
-    query = f"""
+    # 채널의 구독자 수 범위 파악용
+    channel_info_query = f"""
+        SELECT "subscriberCount", "DisplayName"
+        FROM public."Channel"
+        WHERE "id" = '{name_to_id[channel_name]}'
+    """
+    channel_info = pd.read_sql(channel_info_query, db_engine)
+    subscriber_count = channel_info.iloc[0]['subscriberCount']
+
+    # 현재 채널의 평균 조회수
+    user_query = f"""
         SELECT
-            d."date", d."dailyViewCount",
-            COUNT(*) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS videocount
-            SUM(CAST(d."dailyViewCount" AS FLOAT)) FILTER (WHERE CAST(d."date" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS viewcount
+            AVG(CAST("videoViewCount" AS BIGINT)) AS avg_views
+        FROM public."Video"
+        WHERE "channel_id" = '{name_to_id[channel_name]}' AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days';
+    """
+    
+    # 경쟁 채널들의 조회수
+    competitor_query = f"""
+        SELECT 
+                v."channel_id", 
+                AVG(CAST(v."videoViewCount" AS BIGINT)) AS avg_views
         FROM public."Video" v
-        JOIN public."DailyChannel" d ON v."channel_id" = d."channel_id"
-        WHERE "channel_id" = '{name_to_id[channel_name]}'
-        """
+        JOIN public."Channel" c ON v."channel_id"=c."id"
+        WHERE v."channel_id" IN (
+                SELECT "channel_id" FROM public."Video"
+                WHERE CAST(c."subscriberCount" AS BIGINT) BETWEEN CAST({subscriber_count} AS BIGINT) - 500000 AND CAST({subscriber_count} AS BIGINT) + 500000
+                        AND "channel_id" != '{name_to_id[channel_name]}' AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
+                )
+        GROUP BY v."channel_id"
+    """
     try:
-        df = pd.read_sql(query, db_engine, params=(channel_name))
-        if df.empty:
-            raise HTTPException(status_code=404, detail="Channel not found.")
-        
+        user_df = pd.read_sql(user_query, db_engine)
+        competitor_df = pd.read_sql(competitor_query, db_engine)
+        if user_df.empty:
+            raise HTTPException(status_code=404, detail="user data not found.")
+        if competitor_df.empty:
+            raise HTTPException(status_code=404, detail="competitor data not found")
+        user_avg_view = user_df.iloc[0]['avg_views']
+        competitor_avg_view = sum(competitor_df['avg_views'] / len(competitor_df['avg_views']))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-    return
+    return [{
+        '내 채널 평균 조회수':int(user_avg_view) if user_avg_view != None else user_avg_view,
+        '경쟁 채널 평균 조회수':int(competitor_avg_view) if competitor_avg_view != None else competitor_avg_view
+    }]
 
 # 채널 성장 추세
 @dashboard_router.get("/performance/channel-growth/{channel_name}")
@@ -756,25 +786,32 @@ async def get_channel_growth(channel_name: str, db_engine=Depends(get_db_engine)
     Parameters:
         channel_name: 유튜브 채널명
     Returns:
-        
+        [{
+        'x':["2024-11-10", "2024-11-11", "2024-11-12", "2024-11-13", "2024-11-14", ...],
+        "구독자 그래프":[2840000.0, 2840000.0, 2840000.0, 2840000.0, 2840000.0, ...],
+        "조회수 그래프":{'daily':[597868.0, 430060.0, 518304.0, 810582.0, ...], 'total':[2098252623.0, 2098682683.0, 2099200987.0, ...]}
+        }]
     """
     query = f"""
-        SELECT 
-                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
-                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
-        FROM public."Video"
-        JOIN 
-        WHERE "channel_id" = '{channel_id}'
+        SELECT * FROM public."DailyChannel"
+        WHERE "channel_id" = '{name_to_id[channel_name]}'
         """
     try:
-        df = pd.read_sql(query, db_engine, params=(channel_name))
+        df = pd.read_sql(query, db_engine)
         if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
-        
+        dates = df['date'].to_list()
+        total_subscriber = df['totalSubscriberCount'].to_list()
+        daily_view = df['dailyViewCount'].to_list()
+        total_view = df['totalViewCount'].to_list()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-    return
-
+    return [{
+        'x':dates,
+        "구독자 그래프":total_subscriber,
+        "조회수 그래프":{'daily':daily_view, 'total':total_view}
+        }]
+    
 # 채널 특징
 @dashboard_router.get("/performance/channel-feature/{channel_name}")
 async def get_channel_feature(channel_name: str, db_engine=Depends(get_db_engine)):
@@ -783,21 +820,38 @@ async def get_channel_feature(channel_name: str, db_engine=Depends(get_db_engine
     Parameters:
         channel_name: 유튜브 채널명
     Returns:
-        
+        업로드 주기 리스트로
+        활성도는 값으로
     """
+    # 영상 업로드 주기
     query = f"""
         SELECT 
-                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoViewCount" AS FLOAT) ELSE 0 END) AS adsviewcount,
-                SUM(CASE WHEN "hasPaidProductPlacement" = true THEN CAST("videoLikeCount" AS FLOAT) ELSE 0 END) AS adslikecount
+                TO_CHAR(DATE_TRUNC('month', CAST("videoPublishedAt" AS DATE)), 'YYYY-MM') AS month,
+                COUNT(*) AS videocount
         FROM public."Video"
-        JOIN 
-        WHERE "channel_id" = '{channel_id}'
+        WHERE CAST("videoPublishedAt" AS DATE) >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+        AND "channel_id" = '{name_to_id[channel_name]}'
+        GROUP BY month
+        ORDER BY month;
+        """
+    # 채널 활성도
+    sub_query = f"""
+        SELECT AVG("subscriberViewedRatio") as avg_participation
+        FROM "Video"
+        WHERE "channel_id" = '{name_to_id[channel_name]}' AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
         """
     try:
-        df = pd.read_sql(query, db_engine, params=(channel_name))
+        df = pd.read_sql(query, db_engine)
+        sub_df = pd.read_sql(sub_query, db_engine)
         if df.empty:
             raise HTTPException(status_code=404, detail="Channel not found.")
-        
+        dates = df['month'].to_list()
+        values = df['videocount'].to_list()
+        participation = round(sub_df.iloc[0]['avg_participation'], 1)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-    return
+    return [{
+        'x':dates,
+        '영상 수':values,
+        '참여도':f"{convert_type(participation)}%"
+    }]
