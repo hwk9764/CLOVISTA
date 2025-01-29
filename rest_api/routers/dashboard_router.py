@@ -431,11 +431,12 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
         """
         
         # 대댓글 수 계산
-        search_term = f'@{display_name}'
         replies_query = f"""
             SELECT COUNT(*) as reply_count
-            FROM public."Comments"
-            WHERE strpos(replies, '@{display_name}') > 0
+            FROM public."Video" v
+            JOIN public."Comments" c ON c."vId" = v."vId"
+            WHERE v."channel_id" = '{name_to_id[channel_name]}'
+            AND strpos(c."replies", '@{display_name}') > 0
         """
         
         # # 경쟁 채널들의 평균 대댓글 수
@@ -446,7 +447,9 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
                     ch."id",
                     COUNT(*) as reply_count
                 FROM public."Channel" ch
-                JOIN public."Comments" cm ON strpos(cm."replies", '@' || ch."DisplayName") > 0
+                JOIN public."Video" v ON v."channel_id" = ch."id"
+                JOIN public."Comments" cm ON cm."vId" = v."vId"
+                    AND strpos(cm."replies", '@' || ch."DisplayName") > 0
                 WHERE CAST(ch."subscriberCount" AS FLOAT) 
                 BETWEEN CAST({subscriber_count} AS FLOAT) - 500000 AND CAST({subscriber_count} AS FLOAT) + 500000
                 AND ch."id" != '{name_to_id[channel_name]}'
@@ -647,6 +650,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
                 "videoTitle",
                 "videoThumbnails",
                 CAST("videoViewCount" AS FLOAT) as view_count,
+                CAST("videoAPV" AS FLOAT) as apv,
                 ROUND((CAST("commentCount" AS FLOAT) / CAST("videoViewCount" AS FLOAT) * 100)::numeric, 2) as comment_rate,
                 ROUND((CAST("videoLikeCount" AS FLOAT) / CAST("videoViewCount" AS FLOAT) * 100)::numeric, 2) as like_rate,
                 ROUND(CAST("videoCTR" AS FLOAT)::numeric, 2) as ctr
@@ -657,6 +661,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
             "videoTitle" as "제목",
             "videoThumbnails" as "썸네일",
             view_count as "조회수",
+            apv as "평균 조회율",
             comment_rate as "댓글 참여율",
             like_rate as "좋아요 참여율",
             ctr as "노출 클릭률"
@@ -671,6 +676,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
                 "videoTitle",
                 "videoThumbnails",
                 CAST("videoViewCount" AS FLOAT) as view_count,
+                CAST("videoAPV" AS FLOAT) as apv,
                 ROUND((CAST("commentCount" AS FLOAT) / CAST("videoViewCount" AS FLOAT) * 100)::numeric, 2) as comment_rate,
                 ROUND((CAST("videoLikeCount" AS FLOAT) / CAST("videoViewCount" AS FLOAT) * 100)::numeric, 2) as like_rate,
                 ROUND(CAST("videoCTR" AS FLOAT)::numeric, 2) as ctr
@@ -681,11 +687,12 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
             "videoTitle" as "제목",
             "videoThumbnails" as "썸네일",
             view_count as "조회수",
+            apv as "평균 조회율",
             comment_rate as "댓글 참여율",
             like_rate as "좋아요 참여율",
             ctr as "노출 클릭률"
         FROM thumbnail_metrics
-        ORDER BY ctr DESC
+        ORDER BY ctr DESC, apv DESC
         LIMIT 3
     """
     try: #조회수 dailyChannel로 수정                
@@ -694,7 +701,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
 
         for df in [top_videos_df, top_thumbnails_df]:
             df["조회수"] = df["조회수"].apply(lambda x: simplify(x))
-            df.insert(3, "평균 조회율", "임시값%") #수정
+            df["평균 조회율"] = df["평균 조회율"].apply(lambda x: f"{x}%")
             df["댓글 참여율"] = df["댓글 참여율"].apply(lambda x: f"{x}%")
             df["좋아요 참여율"] = df["좋아요 참여율"].apply(lambda x: f"{x}%")
             df["노출 클릭률"] = df["노출 클릭률"].apply(lambda x: f"{x}%")
