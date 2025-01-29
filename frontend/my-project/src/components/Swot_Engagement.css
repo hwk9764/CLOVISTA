@@ -51,3 +51,39 @@
     background-color: #d2edc4;
     font-weight: bold;
   }
+
+  .engagement-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .section-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+  
+  .gauge-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+  
+  .gauge-chart {
+    text-align: center;
+  }
+  
+  .gauge-label p {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+  
+  .gauge-label span {
+    font-size: 14px;
+    color: #555;
+  }
+  
