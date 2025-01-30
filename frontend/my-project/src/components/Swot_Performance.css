@@ -4,98 +4,102 @@
   background: linear-gradient(to bottom, #e8f5c8, #d2edc4);
   padding: 50px;
   border-radius: 10px;
-  width: 90%;  /* ✅ 전체 너비 균형 조정 */
+  width: 90%;
+  /* ✅ 전체 너비 균형 조정 */
   max-width: 1500px;
   margin-left: auto;
   margin-right: auto;
+  overflow-y: auto; /* ✅ 세로 스크롤 추가 */
+  max-height: 90vh; /* ✅ 뷰포트 높이의 90%로 제한 */
+  scrollbar-width: none;
 }
-  
+
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);  /* ✅ 2열 배치 */
+  grid-template-columns: repeat(2, 1fr);
+  /* ✅ 2열 배치 */
   grid-template-rows: auto;
-  gap: 30px;  /* ✅ 카드 간격 증가 */
+  /* ✅ 카드 간격 증가 */
   justify-content: center;
-  align-items: stretch; /* ✅ 모든 카드 높이 맞춤 */
-  width: 100%;
-  max-width: 1500px;
-  margin: 0 auto;
+  align-items: stretch;
+  /* ✅ 모든 카드 높이 맞춤 */
+  width: auto;
+  margin: auto auto;
 }
-  
-.profile-section, 
-.graph-section, 
-.popular-videos, 
-.popular-thumbnails, 
-.graph-card, 
-.upload-cycle, 
+
+.profile-section,
+.graph-section,
+.popular-videos,
+.popular-thumbnails,
+.graph-card,
+.upload-cycle,
 .activation-metric {
   background-color: white;
-  padding: 20px;
+  padding: auto;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  min-width: 500px; /* ✅ 카드 최소 크기 설정 */
+  width: auto;
+  min-width: 500px;
+  /* ✅ 카드 최소 크기 설정 */
   text-align: center;
 }
 
 .profile-section {
   display: flex;
-  align-items: center;  /* ✅ 세로 정렬 */
+  align-items: center;
+  /* ✅ 세로 정렬 */
   justify-content: center;
-  height: 100%;  /* ✅ 오른쪽 카드와 길이 맞추기 */
+  height: 100%;
+  /* ✅ 오른쪽 카드와 길이 맞추기 */
 }
 
-canvas {
-  margin-top: 20px;
-  height: auto !important;
-  width: 100% !important;
-  min-height: 350px; /* ✅ 그래프 가려지는 문제 해결 */
+
+.video-list {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: nowrap;
 }
 
-  .video-list {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: nowrap;
-  }
-  
-  .video-card {
-    width: 220px;
-    text-align: center;
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 15px;
-  }
-  
-  .thumbnail {
-    width: 100%;
-    border-radius: 10px;
-  }
-  
-  .video-info {
-    margin-top: 10px;
-    text-align: left;
-  }
-  
-  .video-detail {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 5px;
-    font-size: 14px;
-    color: #555;
-  }
-  
-  .video-detail span:first-child {
-    font-weight: bold;
-    flex: 1; /* 왼쪽 영역 넓이 균등화 */
-  }
-  
-  .video-detail span:last-child {
-    text-align: right;
-    flex: 1; /* 오른쪽 영역 넓이 균등화 */
-  }
-  
+.video-card {
+  width: 220px;
+  text-align: center;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+}
+
+.thumbnail {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.video-info {
+  margin-top: 10px;
+  text-align: left;
+}
+
+.video-detail {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 14px;
+  color: #555;
+}
+
+.video-detail span:first-child {
+  font-weight: bold;
+  flex: 1;
+  /* 왼쪽 영역 넓이 균등화 */
+}
+
+.video-detail span:last-child {
+  text-align: right;
+  flex: 1;
+  /* 오른쪽 영역 넓이 균등화 */
+}
+
 /* Toggle 버튼 영역 */
 .toggle-buttons {
   display: flex;
@@ -127,20 +131,37 @@ canvas {
   font-weight: bold;
 }
 
-.upload-cycle {
-  grid-column: 1 / 2;  /* ✅ 왼쪽 배치 */
+.activation-metric {
+  align-items: center;
+  padding: 10px; /* 기존보다 더 작은 여백 */
+  min-width: 300px; /* 최소 크기 조정 */
+  max-width: 400px; /* 최대 크기 제한 */
+  height: auto; /* 높이 자동 조정 */
+  font-size: 12px; /* 텍스트 크기 감소 */
+  display: flex;
+  flex-direction: column;
+
 }
 
-.activation-metric {
-  grid-column: 2 / 3;  /* ✅ 오른쪽 배치 */
-  align-items: stretch;  /* ✅ 높이 조정 */
+.upload-cycle h3,
+.activation-metric h3 {
+  font-size: 18px; /* 제목 크기 축소 */
+  margin-bottom: 10px; /* 제목 하단 여백 축소 */
 }
+
+.activation-metric canvas {
+  max-width: 100%; /* 캔버스 크기 조정 */
+  height: 150px; /* 캔버스 높이 축소 */
+}
+
+
 
 /* ✅ 차트 설명 정렬 */
-.upload-cycle p, 
+.upload-cycle p,
 .activation-metric p {
   font-size: 14px;
   color: #555;
   margin-top: 10px;
   text-align: left;
+  padding: 20px;
 }
