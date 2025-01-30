@@ -1,12 +1,18 @@
-import React, { useEffect, useRef } from "react";
-import './Swot_Performance.css';
-import Chart from "chart.js/auto";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import performanceData from '../data/performance_data.json';
+import Chart from "chart.js/auto";
+import './Swot_Performance.css';
+import axios from "axios";
+// import performanceData from '../data/performance_data.json';
 
 
 const Performance = () => {
   const navigate = useNavigate();
+  const [channel_info, SetChannelInfo] = useState(null);
+  const [video_info, setVideoInfo] = useState(null);
+  const [thumbnail_info, setThumbnailInfo] = useState(null);
+  const channelName = "너덜트";
+
   const barChartRef = useRef(null);
   const growthChartRef = useRef(null);
   const viewsChartRef = useRef(null);
@@ -19,6 +25,35 @@ const Performance = () => {
   const uploadCycleChartInstance = useRef(null);
   const activationChartInstance = useRef(null);
 
+  useEffect(() => {
+    const uri_channel_info = `http://10.28.224.177:30635/dashboard/performance/channel-banner/${channelName}`;
+    const uri_video_info = `http://10.28.224.177:30635/dashboard/performance/channel-performance/${channelName}`;
+    // const uri_view_count=`http://10.28.224.177:30635/dashboard/performance/channel-viewcount/${channelName}`;
+    // const uri_channel_growth=`http://10.28.224.177:30635/dashboard/performance/channel-growth/${channelName}`;
+    // const uri_channel_feature=`http://10.28.224.177:30635/dashboard/performance/channel-feature/${channelName}`;
+    axios
+      .get(uri_channel_info)
+      .then((response) => {
+        SetChannelInfo(response.data[0]);
+      })
+      .catch((error) => console.error("Error fetching ad performance data:", error));
+
+    axios
+      .get(uri_video_info)
+      .then((response) => {
+        if (response.data) {
+          if (response.data["많은 사랑을 받은 영상"]) {
+            setVideoInfo(response.data["많은 사랑을 받은 영상"]); // ✅ "많은 사랑을 받은 영상" 데이터 저장
+          }
+          if (response.data["많은 사랑을 받은 썸네일"]) {
+            setThumbnailInfo(response.data["많은 사랑을 받은 썸네일"]); // ✅ "많은 사랑을 받은 썸네일" 데이터 저장
+          }
+        }
+      })
+      .catch((error) => console.error("Error fetching video info:", error));
+
+
+  }, [channelName]);
   useEffect(() => {
     if (!barChartRef.current) return;
 
@@ -86,25 +121,25 @@ const Performance = () => {
     }
 
     const ctx = growthChartRef.current.getContext("2d");
-    growthChartInstance.current = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: Object.keys(performanceData.channel_growth || {}),
-        datasets: [
-          {
-            label: "채널 성장 추세",
-            data: Object.values(performanceData.channel_growth || {}),
-            borderColor: "#4caf50",
-            backgroundColor: "rgba(76, 175, 80, 0.2)",
-            fill: true,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-      },
-    });
+    // growthChartInstance.current = new Chart(ctx, {
+    //   type: "line",
+    //   data: {
+    //     labels: Object.keys(performanceData.channel_growth || {}),
+    //     datasets: [
+    //       {
+    //         label: "채널 성장 추세",
+    //         data: Object.values(performanceData.channel_growth || {}),
+    //         borderColor: "#4caf50",
+    //         backgroundColor: "rgba(76, 175, 80, 0.2)",
+    //         fill: true,
+    //       },
+    //     ],
+    //   },
+    //   options: {
+    //     responsive: true,
+    //     plugins: { legend: { display: false } },
+    //   },
+    // });
 
     return () => {
       if (growthChartInstance.current) {
@@ -122,25 +157,25 @@ const Performance = () => {
     }
 
     const ctx = viewsChartRef.current.getContext("2d");
-    viewsChartInstance.current = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: Object.keys(performanceData.video_views || {}),
-        datasets: [
-          {
-            label: "조회수 변화 추세",
-            data: Object.values(performanceData.video_views || {}),
-            borderColor: "#f44336",
-            backgroundColor: "rgba(244, 67, 54, 0.2)",
-            fill: true,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-      },
-    });
+    // viewsChartInstance.current = new Chart(ctx, {
+    //   type: "line",
+    //   data: {
+    //     labels: Object.keys(performanceData.video_views || {}),
+    //     datasets: [
+    //       {
+    //         label: "조회수 변화 추세",
+    //         data: Object.values(performanceData.video_views || {}),
+    //         borderColor: "#f44336",
+    //         backgroundColor: "rgba(244, 67, 54, 0.2)",
+    //         fill: true,
+    //       },
+    //     ],
+    //   },
+    //   options: {
+    //     responsive: true,
+    //     plugins: { legend: { display: false } },
+    //   },
+    // });
 
     return () => {
       if (viewsChartInstance.current) {
@@ -152,11 +187,11 @@ const Performance = () => {
   useEffect(() => {
     // ✅ 업로드 주기 차트 생성
     if (!uploadCycleChartRef.current) return;
-  
+
     if (uploadCycleChartInstance.current) {
       uploadCycleChartInstance.current.destroy();
     }
-  
+
     const uploadCtx = uploadCycleChartRef.current.getContext("2d");
     uploadCycleChartInstance.current = new Chart(uploadCtx, {
       type: "bar",
@@ -175,14 +210,14 @@ const Performance = () => {
         plugins: { legend: { display: false } },
       },
     });
-  
+
     // ✅ 유사 채널 대비 활성도 차트 생성
     if (!activationChartRef.current) return;
-  
+
     if (activationChartInstance.current) {
       activationChartInstance.current.destroy();
     }
-  
+
     const activationCtx = activationChartRef.current.getContext("2d");
     activationChartInstance.current = new Chart(activationCtx, {
       type: "doughnut",
@@ -201,7 +236,7 @@ const Performance = () => {
         plugins: { legend: { display: false } },
       },
     });
-  
+
     // ✅ Cleanup 함수 추가 (차트 제거)
     return () => {
       if (uploadCycleChartInstance.current) {
@@ -239,15 +274,17 @@ const Performance = () => {
       </div>
 
       <div className="grid-container">
-        <div className="profile-section">
+        {channel_info ? (<div className="profile-section">
           <div className="profile-content">
-            <img src="/channel_image.png" alt="Channel Profile" className="profile-image" />
+            <img src={channel_info['썸네일']} alt="Channel Profile" className="profile-image" />
             <div className="profile-info">
-              <h2 className="channel-name">빠더너스 BDNS</h2>
-              <p className="channel-stats">구독자 178만명, 동영상 1.2천개</p>
+              <h2 className="channel-name">{channel_info["채널 이름"]}</h2>
+              <p className="channel-stats">구독자 {channel_info["구독자"]}, 동영상 {channel_info["동영상"]}</p>
             </div>
           </div>
-        </div>
+        </div>) : (
+          <p>Loading...</p>
+        )}
 
         <div className="graph-section">
           <h3>채널 평균 조회수 및 경쟁 채널 평균 조회수</h3>
@@ -257,86 +294,74 @@ const Performance = () => {
         <div className="popular-videos">
           <h3>많은 사랑을 받은 영상</h3>
           <div className="video-list">
-            {[1,2,3].map(index => (
-              <div className="video-card" key={index}>
-              <img src="/example_thumbnail_2.png" alt="Thumbnail" className="thumbnail" />
-              <div className="video-info">
-                <p className="video-title">영상 제목 {index}</p>
-                <div className="video-detail">
-                  <span>조회수</span>
-                  <span>14k</span>
+            {video_info ? (
+              video_info.map((video, index) => (
+                <div className="video-card" key={index}>
+                  <img src={video["썸네일"]} alt={video["제목"]} className="thumbnail" />
+                  <div className="video-info">
+                    <p className="video-title">{video["제목"]}</p>
+                    <div className="video-detail">
+                      <span>조회수</span>
+                      <span>{video["조회수"]}</span>
+                    </div>
+                    <div className="video-detail">
+                      <span>평균 조회율</span>
+                      <span>{video["평균 조회율"]}</span>
+                    </div>
+                    <div className="video-detail">
+                      <span>댓글 참여율</span>
+                      <span>{video["댓글 참여율"]}</span>
+                    </div>
+                    <div className="video-detail">
+                      <span>좋아요 참여율</span>
+                      <span>{video["좋아요 참여율"]}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="video-detail">
-                  <span>평균 조회율</span>
-                  <span>15%</span>
-                </div>
-                <div className="video-detail">
-                  <span>댓글 참여율</span>
-                  <span>1.3%</span>
-                </div>
-                <div className="video-detail">
-                  <span>좋아요 참여율</span>
-                  <span>2.4%</span>
-                </div>
-              </div>
-            </div>
-            ))}
+              ))
+            ) : (
+              <p>로딩 중...</p> // ✅ 데이터 로딩 중 표시
+            )}
           </div>
         </div>
 
         <div className="popular-thumbnails">
           <h3>많은 사랑을 받은 썸네일</h3>
           <div className="video-list">
-            {[1,2,3].map(index => (
-              <div className="video-card" key={index}>
-              <img src="/example_thumbnail_2.png" alt="Thumbnail" className="thumbnail" />
-              <div className="video-info">
-                <p className="video-title">영상 제목 {index}</p>
-                <div className="video-detail">
-                  <span>조회수</span>
-                  <span>14k</span>
+            {thumbnail_info ? (
+              thumbnail_info.map((thumb, index) => (
+                <div className="video-card" key={index}>
+                  <img src={thumb["썸네일"]} alt={thumb["제목"]} className="thumbnail" />
+                  <div className="video-info">
+                    <p className="video-title">{thumb["제목"]}</p>
+                    <div className="video-detail">
+                      <span>조회수</span>
+                      <span>{thumb["조회수"]}</span>
+                    </div>
+                    <div className="video-detail">
+                      <span>평균 조회율</span>
+                      <span>{thumb["평균 조회율"]}</span>
+                    </div>
+                    <div className="video-detail">
+                      <span>댓글 참여율</span>
+                      <span>{thumb["댓글 참여율"]}</span>
+                    </div>
+                    <div className="video-detail">
+                      <span>좋아요 참여율</span>
+                      <span>{thumb["좋아요 참여율"]}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="video-detail">
-                  <span>평균 조회율</span>
-                  <span>15%</span>
-                </div>
-                <div className="video-detail">
-                  <span>댓글 참여율</span>
-                  <span>1.3%</span>
-                </div>
-                <div className="video-detail">
-                  <span>좋아요 참여율</span>
-                  <span>2.4%</span>
-                </div>
-              </div>
-            </div>
-            ))}
+              ))
+            ) : (
+              <p>로딩 중...</p> // ✅ 데이터 로딩 중 표시
+            )}
           </div>
         </div>
-        <div className="graph-card">
-    <h3>채널 성장 추세</h3>
-    <canvas ref={growthChartRef} width="400" height="200"></canvas>
-  </div>
 
-  <div className="graph-card">
-    <h3>조회수 변화 그래프</h3>
-    <canvas ref={viewsChartRef} width="400" height="200"></canvas>
-  </div>
       </div>
-    
-  {/* ✅ 업로드 주기 섹션 추가 */}
-  <div className="upload-cycle">
-    <h3>영상 업로드 주기</h3>
-    <canvas ref={uploadCycleChartRef} width="400" height="200"></canvas>
-    <p>영상 업로드 주기가 불규칙적이에요. 규칙적인 업로드는 고정팬을 증가시켜 안정적인 조회수를 얻을 수 있어요.</p>
-  </div>
 
-  {/* ✅ 유사 채널 대비 활성도 섹션 추가 */}
-  <div className="activation-metric">
-    <h3>유사 채널 대비 활성도</h3>
-    <canvas ref={activationChartRef} width="400" height="200"></canvas>
-    <p>내 영상을 시청하는 사람 중 구독자의 비율이 높아요. 이는 팬덤이 어느 정도 형성되어 안정적인 채널 운영이 가능함을 의미합니다.</p>
-  </div>
+
     </div>
   );
 };
