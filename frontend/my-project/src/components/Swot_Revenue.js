@@ -135,101 +135,101 @@ const SwotRevenue = () => {
         {/* 조회수 및 후원 수입 섹션 */}
         <div className="section full-width">
           <h3>조회수 수입 및 후원 수입</h3>
-          <div className="charts-wrapper">
-            <div className="chart">
+          <div className="revenue_charts-wrapper">
+            <div className="revenue_chart">
               <div>조회수</div>
               <canvas ref={chartRefViews} id="viewsChart" width="400" height="200"></canvas>
             </div>
-            <div className="chart">
+            <div className="revenue_chart">
               <div>후원</div>
               <canvas ref={chartRefDonations} id="donationsChart" width="400" height="200"></canvas>
             </div>
           </div>
         </div>
 
-      <div className="ads-wrapper">
-        {/* 가장 성적이 좋은 광고영상 */}
-        <div className="ad-section">
-          <h4>가장 성적이 좋은 광고영상</h4>
-          {bestAd ? (
-            <>
-              <img src={bestAd.썸네일} alt="Best Ad" className="ad-thumbnail" />
-              <div className="ad-content">
-                <div className="ad-info">
-                  <p className="ad-title">{bestAd.제목}</p>
-                  <div className="ad-detail">
-                    <span>업로드 날짜</span>
-                    <span>{bestAd["업로드 날짜"]}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>조회수</span>
-                    <span>{bestAd.조회수}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>평균 조회율</span>
-                    <span>{bestAd["평균 조회율"]}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>댓글 참여율</span>
-                    <span>{bestAd["댓글 참여율"]}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>좋아요 참여율</span>
-                    <span>{bestAd["좋아요 참여율"]}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>노출 클릭률</span>
-                    <span>{bestAd["노출 클릭률"]}</span>
+        <div className="ads-wrapper">
+          {/* 가장 성적이 좋은 광고영상 */}
+          <div className="ad-section">
+            <h4>가장 성적이 좋은 광고영상</h4>
+            {bestAd ? (
+              <>
+                <img src={bestAd.썸네일} alt="Best Ad" className="ad-thumbnail" />
+                <div className="ad-content">
+                  <div className="ad-info">
+                    <p className="ad-title">{bestAd.제목}</p>
+                    <div className="ad-detail">
+                      <span>업로드 날짜</span>
+                      <span>{bestAd["업로드 날짜"]}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>조회수</span>
+                      <span>{bestAd.조회수}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>평균 조회율</span>
+                      <span>{bestAd["평균 조회율"]}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>댓글 참여율</span>
+                      <span>{bestAd["댓글 참여율"]}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>좋아요 참여율</span>
+                      <span>{bestAd["좋아요 참여율"]}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>노출 클릭률</span>
+                      <span>{bestAd["노출 클릭률"]}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </>
-          ) : (
-            <p>Loading...</p>
-          )}
-        </div>
+              </>
+            ) : (
+              <p>Loading...</p>
+            )}
+          </div>
 
-        {/* 가장 성적이 안 좋은 광고영상 */}
-        <div className="ad-section">
-          <h4>가장 성적이 안 좋은 광고영상</h4>
-          {worstAd ? (
-            <>
-              <img src={worstAd.썸네일} alt="Worst Ad" className="ad-thumbnail" />
-              <div className="ad-content">
-                <div className="ad-info">
-                  <p className="ad-title">{worstAd.제목}</p>
-                  <div className="ad-detail">
-                    <span>업로드 날짜</span>
-                    <span>{worstAd["업로드 날짜"]}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>조회수</span>
-                    <span>{worstAd.조회수}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>평균 조회율</span>
-                    <span>{worstAd["평균 조회율"]}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>댓글 참여율</span>
-                    <span>{worstAd["댓글 참여율"]}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>좋아요 참여율</span>
-                    <span>{worstAd["좋아요 참여율"]}</span>
-                  </div>
-                  <div className="ad-detail">
-                    <span>노출 클릭률</span>
-                    <span>{worstAd["노출 클릭률"]}</span>
+          {/* 가장 성적이 안 좋은 광고영상 */}
+          <div className="ad-section">
+            <h4>가장 성적이 안 좋은 광고영상</h4>
+            {worstAd ? (
+              <>
+                <img src={worstAd.썸네일} alt="Worst Ad" className="ad-thumbnail" />
+                <div className="ad-content">
+                  <div className="ad-info">
+                    <p className="ad-title">{worstAd.제목}</p>
+                    <div className="ad-detail">
+                      <span>업로드 날짜</span>
+                      <span>{worstAd["업로드 날짜"]}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>조회수</span>
+                      <span>{worstAd.조회수}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>평균 조회율</span>
+                      <span>{worstAd["평균 조회율"]}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>댓글 참여율</span>
+                      <span>{worstAd["댓글 참여율"]}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>좋아요 참여율</span>
+                      <span>{worstAd["좋아요 참여율"]}</span>
+                    </div>
+                    <div className="ad-detail">
+                      <span>노출 클릭률</span>
+                      <span>{worstAd["노출 클릭률"]}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </>
-          ) : (
-            <p>Loading...</p>
-          )}
+              </>
+            ) : (
+              <p>Loading...</p>
+            )}
+          </div>
         </div>
-      </div>
 
 
         {/* 광고영상과 일반영상의 성과 비교 */}
