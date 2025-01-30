@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom'; 
-import './main.css';
+import './Main.css';
 
 const MainPage = () => {
   const [hasYouTubeChannel, setHasYouTubeChannel] = useState(null);
@@ -23,6 +23,7 @@ const MainPage = () => {
           <ServiceCard
             title="내 유튜브 채널 SWOT 분석 받기"
             description="채널의 강점, 약점, 기회, 위협 요인을 분석해보세요."
+            link='/main/Swot'
           />
         )}
         <ServiceCard

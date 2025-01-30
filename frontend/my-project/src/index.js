@@ -6,6 +6,7 @@ import Signup from './components/Signup';
 import Login from './components/Login';
 import Survey from './components/Survey';
 import Main from './components/Main';
+import Swot from './components/Swot'
 import Sense from './components/Sense';
 import Sense_List from './components/Sense_List';
 import Sense_Result from './components/Sense_Result';
@@ -26,6 +27,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/main/sense" element={<Sense />} />
         <Route path="/main/senselist" element={<Sense_List />} />
         <Route path="/main/sense/:id" element={<Sense_Result />} />
+        <Route path='/main/Swot' element={<Swot/>}/>
         <Route path="/main/Swot/Performance" element={<Swot_Performance />} />
         <Route path="/main/Swot/Engagement" element={<Swot_Engagement />} />
         <Route path="/main/Swot/Revenue" element={<Swot_Revenue />} />
