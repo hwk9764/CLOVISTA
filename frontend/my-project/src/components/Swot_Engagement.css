@@ -1,89 +1,212 @@
-.revenue-container {
-    text-align: center;
-    margin-top: 50px;
-    background: linear-gradient(to bottom, #e8f5c8, #d2edc4);
-    padding: 50px;
-    border-radius: 10px;
-  }
-  
-  .grid-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 20px;
-  }
-  
-  .section {
-    background-color: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .section h3 {
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 20px;
-    color: #333;
-  }
-  
+/* 전체 페이지에서 스크롤 가능하도록 설정 */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+}
+
+/* 메인 컨테이너 */
+.engagement-container {
+  background-color: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  width: 90%;
+  max-width: 1500px;
+  margin: 0 auto;
+  overflow-y: auto; /* ✅ 세로 스크롤 추가 */
+  height: auto;
+}
+
+/* Grid Layout */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  width: auto;
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* 각 섹션 스타일 */
+.section {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: auto;
+  min-width: 500px;
+  text-align: center;
+  overflow-y: auto; /* ✅ 섹션 내부 스크롤 가능 */
+  max-height: 600px; /* ✅ 너무 커지는 것을 방지 */
+}
+
+/* 섹션 제목 */
+.section-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #333;
+}
+
 /* Toggle 버튼 영역 */
 .toggle-buttons {
-    display: flex;
-    justify-content: flex-start;
-    margin-bottom: 20px;
-    padding-left: 20px;
-  }
-  
-  .toggle-button {
-    background-color: #ffffff;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    padding: 10px 20px;
-    margin-right: 10px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-  
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
 
-  .toggle-button.active {
-    background-color: #d2edc4;
-    font-weight: bold;
-  }
+.toggle-button {
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 8px 16px;
+  margin-right: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
 
-  .engagement-container {
-    background-color: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    text-align: center;
+.toggle-button.active {
+  background-color: #d2edc4;
+  font-weight: bold;
+}
+
+/* 차트 컨테이너 */
+.chart-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 95%;
+}
+
+/* 막대 그래프 스타일 */
+.bar-chart {
+  width: 45%;
+  min-width: 280px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 도넛 게이지 차트 */
+.gauge-chart {
+  width: 45%;
+  min-width: 280px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 게이지 차트 내부 조정 */
+.gauge-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* 게이지 차트 스타일 */
+.gauge-chart canvas {
+  width: 80% !important;
+  height: auto !important;
+}
+
+/* 게이지 라벨 */
+.gauge-label p {
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.gauge-label span {
+  font-size: 14px;
+  color: #555;
+}
+
+/* 타겟 시청자 특성 - 도넛 그래프 */
+.target-audience-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.doughnut-chart {
+  width: 45%;
+  min-width: 280px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 최근 영상 키워드 스타일 */
+.keywords-container {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.keyword-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+}
+
+.keyword-tag {
+  background-color: #f1f1f1;
+  padding: 8px 12px;
+  border-radius: 15px;
+  font-size: 14px;
+  color: #333;
+}
+
+/* 업로드 시간대 비교 - 컨테이너 */
+.upload-time-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* 업로드 시간 & 시청 시간 텍스트 */
+.upload-time-text {
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* 스크롤바 숨기기 */
+.engagement-container::-webkit-scrollbar {
+  display: none;
+}
+
+.engagement-container {
+  scrollbar-width: none;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 900px) {
+  .grid-container {
+      grid-template-columns: 1fr;
   }
-  
-  .section-title {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 20px;
+  .chart-container, .target-audience-container, .upload-time-container {
+      flex-direction: column;
   }
-  
-  .gauge-container {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
+  .bar-chart, .gauge-chart, .doughnut-chart {
+      width: 80%;
   }
-  
-  .gauge-chart {
-    text-align: center;
-  }
-  
-  .gauge-label p {
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 10px;
-  }
-  
-  .gauge-label span {
-    font-size: 14px;
-    color: #555;
-  }
-  
+}
