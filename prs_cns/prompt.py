@@ -65,11 +65,6 @@ PROMPT_engagement = [
         - 댓글 비율: 경쟁 채널 평균 {avg_comment_ratio:.2f}%
         - 공유 비율: 경쟁 채널 평균 {avg_share_ratio:.2f}%
 
-        3. 참여도 순위:
-        - 전체 참여도 순위: {total_channels}개 채널 중 {engagement_rank}위
-        - 유사 규모 채널 중 순위: {similar_size_channels}개 채널 중 {similar_size_rank}위
-
-
         """
     }
 ]
@@ -248,11 +243,6 @@ PROMPT_upload_pattern = [
         - 월평균 업로드: {monthly_uploads:.1f}개
         - 전체 영상 수: {video_count:,}개
         - 업로드 순위: 전체 {total_channels}개 중 {upload_rank}위
-        
-        3. 채널 참여도:
-        - 구독자 참여율: {participation:.1f}%
-        - 참여도 순위: 전체 {total_channels}개 중 {engagement_rank}위
-        - 경쟁 채널 평균 참여율: {avg_participation:.1f}%
 
         """
     }
