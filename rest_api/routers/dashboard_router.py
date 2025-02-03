@@ -72,8 +72,8 @@ async def get_views_and_donations(channel_name: str, db_engine=Depends(get_db_en
         # 전처리 코드 추가
         viewcount = int(df.iloc[0]["viewCount"])
         avg_viewcount = int(df.iloc[0]["avg_viewcount"])
-        view_profit_user = (viewcount * 2, int(viewcount * 4.5))
-        view_profit_avg = (avg_viewcount * 2, int(avg_viewcount * 4.5))
+        view_profit_user = int((viewcount * 2 + viewcount * 4.5) / 2)
+        view_profit_avg = int((avg_viewcount * 2 + avg_viewcount * 4.5) / 2)
         donation_profit_user = int(df.iloc[0]["Donation"])
         donation_profit_avg = int(df.iloc[0]["avg_donation"])
 
