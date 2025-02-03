@@ -154,7 +154,7 @@ PROMPT_popular_videos = [
 
         1. 첫 번째 영상:
         - 제목: {title1}
-        - 썸네일: {thumbnail1}
+
         - 조회수: {view_count1:,}회 (채널 평균 대비 {view_ratio1:.1f}배)
         - 평균 조회율: {retention_rate1:.1f}%
         - 댓글 참여율: {comment_rate1:.2f}%
@@ -163,7 +163,7 @@ PROMPT_popular_videos = [
 
         2. 두 번째 영상:
         - 제목: {title2}
-        - 썸네일: {thumbnail2}
+
         - 조회수: {view_count2:,}회 (채널 평균 대비 {view_ratio2:.1f}배)
         - 평균 조회율: {retention_rate2:.1f}%
         - 댓글 참여율: {comment_rate2:.2f}%
@@ -172,7 +172,7 @@ PROMPT_popular_videos = [
 
         3. 세 번째 영상:
         - 제목: {title3}
-        - 썸네일: {thumbnail3}
+
         - 조회수: {view_count3:,}회 (채널 평균 대비 {view_ratio3:.1f}배)
         - 평균 조회율: {retention_rate3:.1f}%
         - 댓글 참여율: {comment_rate3:.2f}%
@@ -199,7 +199,7 @@ PROMPT_thumbnail = [
 
         1. 첫 번째 썸네일:
         - 제목: {title1}
-        - 썸네일: {thumbnail1}
+
         - 조회수: {view_count1:,}회
         - 평균 조회율: {retention_rate1:.1f}%
         - 댓글 참여율: {comment_rate1:.2f}%
@@ -208,7 +208,7 @@ PROMPT_thumbnail = [
 
         2. 두 번째 썸네일:
         - 제목: {title2}
-        - 썸네일: {thumbnail2}
+
         - 조회수: {view_count2:,}회
         - 평균 조회율: {retention_rate2:.1f}%
         - 댓글 참여율: {comment_rate2:.2f}%
@@ -217,7 +217,7 @@ PROMPT_thumbnail = [
 
         3. 세 번째 썸네일:
         - 제목: {title3}
-        - 썸네일: {thumbnail3}
+
         - 조회수: {view_count3:,}회
         - 평균 조회율: {retention_rate3:.1f}%
         - 댓글 참여율: {comment_rate3:.2f}%
@@ -234,6 +234,7 @@ PROMPT_upload_pattern = [
         "content": """
         당신은 유튜브 채널의 콘텐츠 업로드 전략을 분석하는 전문가입니다.
         업로드 패턴의 효과성을 평가하고, 시청자 확보를 위한 최적의 업로드 전략을 제안해주세요.
+        현재 채널의 강점과 약점을 정확한 **숫자 정보와 함께** 구체적으로 설명해주세요.
         """
     },
     {
@@ -272,23 +273,19 @@ PROMPT_activity = [
         "content": """
         채널 활성도 데이터입니다:
 
-        1. 구독자/조회수 추세:
-        - 구독자 그래프: {subscriber_graph} (최근 90일)
-        - 일일 조회수 그래프: {daily_view_graph} (최근 90일)
-        - 누적 조회수 그래프: {total_view_graph} (최근 90일)
-
-        2. 채널 성과:
+        1. 채널 성과:
         - 채널 평균 조회수: {user_avg_view:,}회 (전체 {total_channels}개 중 {view_rank}위)
         - 경쟁 채널 평균 조회수: {competitor_avg_view:,}회
         - 조회수/구독자 비율: {view_subscriber_ratio:.1f}%
 
-        3. 채널 특성:
+        2. 채널 특성:
         - 월평균 업로드 수: {monthly_upload_count}개
         - 구독자 참여도: {engagement_rate:.1f}% (전체 {total_channels}개 중 {engagement_rank}위)
         """
     }
 ]
 
+# 9. 채널 분석 요약약
 PROMPT_summary = [
     {
         "role": "system",
