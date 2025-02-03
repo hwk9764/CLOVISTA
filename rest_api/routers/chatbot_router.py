@@ -238,14 +238,271 @@ async def analyze_engagement(channel_name: str, db_engine=Depends(get_db_engine)
 @chatbot_router.get("/audience/communication-analysis/{channel_name}")
 async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engine)):
     """CLOVA X를 이용한 크리에이터 소통 분석"""
-    executor = CompletionExecutor()
-    return executor.execute('communication', metrics)
+    try:
+        # 채널 구독자 수 확인 (경쟁 채널 범위 설정용)
+        channel_info_query = f"""
+            SELECT 
+                CAST("subscriberCount" AS INTEGER) as "subscriberCount",
+                "DisplayName"
+            FROM public."Channel"
+            WHERE "id" = '{name_to_id[channel_name]}'
+        """
+        channel_info = pd.read_sql(channel_info_query, db_engine)
+        subscriber_count = channel_info.iloc[0]["subscriberCount"]
+        display_name = channel_info.iloc[0]["DisplayName"]
+
+        # 라이브 방송 관련 데이터
+        live_query = f"""
+            SELECT 
+                CAST("LiveBroadcastingCount" AS INTEGER) as live_count,
+                CAST("LiveBroadcastingViewer" AS INTEGER) as live_viewers
+            FROM public."Channel"
+            WHERE "id" = '{name_to_id[channel_name]}'
+        """
+
+        # 경쟁 채널들의 라이브 방송 평균
+        competitor_live_query = f"""
+            SELECT COALESCE(AVG(CAST("LiveBroadcastingCount" AS FLOAT)), 0) as avg_competitor_live
+            FROM public."Channel"
+            WHERE CAST("subscriberCount" AS INTEGER) 
+                BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
+            AND "id" != '{name_to_id[channel_name]}'
+        """
+
+        # 크리에이터 댓글 수
+        reply_query = f"""
+            SELECT COUNT(*) as reply_count
+            FROM public."Video" v
+            JOIN public."Comments" c ON c."vId" = v."vId"
+            WHERE v."channel_id" = '{name_to_id[channel_name]}'
+            AND strpos(c."replies", '@{display_name}') > 0
+        """
+
+        # 경쟁 채널들의 평균 댓글 수
+        competitor_replies_query = f"""
+            SELECT COALESCE(AVG(reply_count), 0) as avg_competitor_replies
+            FROM (
+                SELECT 
+                    ch."id",
+                    COUNT(*) as reply_count
+                FROM public."Channel" ch
+                JOIN public."Video" v ON v."channel_id" = ch."id"
+                JOIN public."Comments" cm ON cm."vId" = v."vId"
+                    AND strpos(cm."replies", '@' || ch."DisplayName") > 0
+                WHERE CAST(ch."subscriberCount" AS INTEGER)
+                    BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
+                AND ch."id" != '{name_to_id[channel_name]}'
+                GROUP BY ch."id"
+            ) subquery
+        """
+
+        # 순위 쿼리 (라이브 방송 기준)
+        live_rank_query = f"""
+            SELECT COUNT(*) + 1 as live_rank
+            FROM public."Channel"
+            WHERE CAST("LiveBroadcastingCount" AS INTEGER) > (
+                SELECT CAST("LiveBroadcastingCount" AS INTEGER)
+                FROM public."Channel"
+                WHERE "id" = '{name_to_id[channel_name]}'
+            )
+        """
+
+        # 댓글 순위 쿼리
+        reply_rank_query = f"""
+            WITH reply_counts AS (
+                SELECT 
+                    ch."id",
+                    COUNT(*) as reply_count
+                FROM public."Channel" ch
+                JOIN public."Video" v ON v."channel_id" = ch."id"
+                JOIN public."Comments" cm ON cm."vId" = v."vId"
+                    AND strpos(cm."replies", '@' || ch."DisplayName") > 0
+                GROUP BY ch."id"
+            )
+            SELECT COUNT(*) + 1 as reply_rank
+            FROM reply_counts
+            WHERE reply_count > (
+                SELECT reply_count
+                FROM reply_counts
+                WHERE "id" = '{name_to_id[channel_name]}'
+            )
+        """
+
+        # 유사 규모 채널 수와 순위 쿼리
+        similar_size_query = f"""
+            SELECT COUNT(*) as similar_size_channels
+            FROM public."Channel"
+            WHERE CAST("subscriberCount" AS INTEGER)
+                BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
+        """
+        total_channels_query = "SELECT COUNT(*) as total_channels FROM public.\"Channel\""
+
+        total_channels_df = pd.read_sql(total_channels_query, db_engine)
+
+        # 쿼리 실행
+        live_df = pd.read_sql(live_query, db_engine)
+        competitor_live_df = pd.read_sql(competitor_live_query, db_engine)
+        reply_df = pd.read_sql(reply_query, db_engine)
+        competitor_replies_df = pd.read_sql(competitor_replies_query, db_engine)
+        live_rank_df = pd.read_sql(live_rank_query, db_engine)
+        reply_rank_df = pd.read_sql(reply_rank_query, db_engine)
+        similar_size_df = pd.read_sql(similar_size_query, db_engine)
+        
+        metrics = {
+            "live_count": int(live_df.iloc[0]["live_count"]) if not live_df.empty and live_df.iloc[0]["live_count"] is not None else 0,
+            "live_rank": int(live_rank_df.iloc[0]["live_rank"]) if not live_rank_df.empty and live_rank_df.iloc[0]["live_rank"] is not None else 0,
+            "avg_competitor_live": round(float(competitor_live_df.iloc[0]["avg_competitor_live"]), 1) if not competitor_live_df.empty and competitor_live_df.iloc[0]["avg_competitor_live"] is not None else 0,
+            "live_viewers": int(live_df.iloc[0]["live_viewers"]) if not live_df.empty and live_df.iloc[0]["live_viewers"] is not None else 0,
+            "reply_count": int(reply_df.iloc[0]["reply_count"]) if not reply_df.empty and reply_df.iloc[0]["reply_count"] is not None else 0,
+            "reply_rank": int(reply_rank_df.iloc[0]["reply_rank"]) if not reply_rank_df.empty and reply_rank_df.iloc[0]["reply_rank"] is not None else 0,
+            "avg_competitor_replies": int(competitor_replies_df.iloc[0]["avg_competitor_replies"]) if not competitor_replies_df.empty and competitor_replies_df.iloc[0]["avg_competitor_replies"] is not None else 0,
+            "similar_size_channels": int(similar_size_df.iloc[0]["similar_size_channels"]) if not similar_size_df.empty and similar_size_df.iloc[0]["similar_size_channels"] is not None else 0,
+            "live_similar_rank": int(live_rank_df.iloc[0]["live_rank"]) if not live_rank_df.empty and live_rank_df.iloc[0]["live_rank"] is not None else 0,
+            "reply_similar_rank": int(reply_rank_df.iloc[0]["reply_rank"]) if not reply_rank_df.empty and reply_rank_df.iloc[0]["reply_rank"] is not None else 0,
+            "total_channels": int(total_channels_df.iloc[0]["total_channels"]) if not total_channels_df.empty and total_channels_df.iloc[0]["total_channels"] is not None else 0  # 추가
+        }
+
+        executor = CompletionExecutor()
+        return executor.execute('communication', metrics, max_tokens=300)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @chatbot_router.get("/audience/targeting-analysis/{channel_name}")
 async def analyze_targeting(channel_name: str, db_engine=Depends(get_db_engine)):
     """CLOVA X를 이용한 시청자 타겟팅 분석"""
-    executor = CompletionExecutor()
-    return executor.execute('targeting', metrics)
+    try:
+        # 키워드 추출 (태그와 설명의 해시태그)
+        keyword_query = f"""
+            SELECT 
+                v.tags,
+                v."videoDescription"
+            FROM public."Video" v
+            WHERE v."channel_id" = '{name_to_id[channel_name]}'
+            AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
+        """
+        
+        # 업로드 시간대
+        upload_time_query = f"""
+            SELECT 
+                SUBSTRING(v."videoPublishedAt", 12, 2) AS upload_hour,
+                COUNT(*) as upload_count
+            FROM public."Video" v
+            WHERE v."channel_id" = '{name_to_id[channel_name]}'
+            AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
+            GROUP BY upload_hour
+            ORDER BY upload_count DESC
+            LIMIT 3
+        """
+
+        # 시청 시간대 (댓글 시간 기준)
+        view_time_query = f"""
+            SELECT 
+                SUBSTRING(c."commentPublishedAt", 12, 2) AS view_hour,
+                COUNT(*) AS comment_count
+            FROM public."Comments" c
+            JOIN public."Video" v ON c."vId" = v."vId"
+            WHERE v."channel_id" = '{name_to_id[channel_name]}'
+            AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
+            GROUP BY view_hour
+            ORDER BY comment_count DESC
+            LIMIT 3
+        """
+
+        # 업로드 수와 순위
+        upload_stats_query = f"""
+            WITH upload_counts AS (
+                SELECT 
+                    channel_id,
+                    COUNT(*) as upload_count
+                FROM public."Video"
+                WHERE CAST("videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
+                GROUP BY channel_id
+            )
+            SELECT 
+                (SELECT upload_count FROM upload_counts WHERE channel_id = '{name_to_id[channel_name]}') as upload_count,
+                (
+                    SELECT COUNT(*) + 1
+                    FROM upload_counts
+                    WHERE upload_count > (
+                        SELECT upload_count 
+                        FROM upload_counts 
+                        WHERE channel_id = '{name_to_id[channel_name]}'
+                    )
+                ) as upload_rank
+        """
+
+        # 광고 영상 비율
+        ad_ratio_query = f"""
+            WITH channel_ratios AS (
+                SELECT 
+                    channel_id,
+                    CAST(SUM(CASE WHEN "hasPaidProductPlacement" = true THEN 1 ELSE 0 END) AS FLOAT) / 
+                    CAST(COUNT(*) AS FLOAT) * 100 as ad_ratio
+                FROM public."Video"
+                GROUP BY channel_id
+            )
+            SELECT 
+                (SELECT ad_ratio FROM channel_ratios WHERE channel_id = '{name_to_id[channel_name]}') as ad_ratio,
+                (SELECT AVG(ad_ratio) FROM channel_ratios) as avg_ad_ratio,
+                (
+                    SELECT COUNT(*) + 1
+                    FROM channel_ratios
+                    WHERE ad_ratio > (
+                        SELECT ad_ratio 
+                        FROM channel_ratios 
+                        WHERE channel_id = '{name_to_id[channel_name]}'
+                    )
+                ) as ad_ratio_rank
+        """
+
+        # 전체 채널 수
+        total_channels_query = "SELECT COUNT(*) as total_channels FROM public.\"Channel\""
+
+        keyword_df = pd.read_sql(keyword_query, db_engine)
+        upload_time_df = pd.read_sql(upload_time_query, db_engine)
+        view_time_df = pd.read_sql(view_time_query, db_engine)
+        upload_stats_df = pd.read_sql(upload_stats_query, db_engine)
+        ad_ratio_df = pd.read_sql(ad_ratio_query, db_engine)
+        total_channels_df = pd.read_sql(total_channels_query, db_engine)
+
+        # 키워드 추출 및 처리
+        all_keywords = []
+        for tags in keyword_df["tags"]:
+            if tags:
+                all_keywords.extend(
+                    [tag.strip("#").strip("{}").lower().replace('"', "").replace("\\", "").replace("\n", "")
+                     for tag in tags.split(",")]
+                )
+        for desc in keyword_df["videoDescription"]:
+            if desc:
+                all_keywords.extend(
+                    [word.strip("#").lower().replace('"', "").replace("\\", "").replace("\n", "")
+                     for word in desc.split("#")
+                     if word.strip()]
+                )
+        
+        from collections import Counter
+        keyword_counts = Counter(all_keywords)
+        top_keywords = [k for k, v in keyword_counts.most_common(10) if len(k) < 15]
+
+        metrics = {
+            "keywords": ", ".join(top_keywords),
+            "upload_times": ", ".join([f"{h}시" for h in upload_time_df["upload_hour"].tolist()]) if not upload_time_df.empty else "",
+            "viewing_times": ", ".join([f"{h}시" for h in view_time_df["view_hour"].tolist()]) if not view_time_df.empty else "",
+            "upload_count": int(upload_stats_df.iloc[0]["upload_count"]) if not upload_stats_df.empty and upload_stats_df.iloc[0]["upload_count"] is not None else 0,
+            "total_channels": int(total_channels_df.iloc[0]["total_channels"]) if not total_channels_df.empty and total_channels_df.iloc[0]["total_channels"] is not None else 0,
+            "ad_ratio": float(ad_ratio_df.iloc[0]["ad_ratio"]) if not ad_ratio_df.empty and ad_ratio_df.iloc[0]["ad_ratio"] is not None else 0,
+            "avg_ad_ratio": float(ad_ratio_df.iloc[0]["avg_ad_ratio"]) if not ad_ratio_df.empty and ad_ratio_df.iloc[0]["avg_ad_ratio"] is not None else 0,
+            "ad_ratio_rank": int(ad_ratio_df.iloc[0]["ad_ratio_rank"]) if not ad_ratio_df.empty and ad_ratio_df.iloc[0]["ad_ratio_rank"] is not None else 0,
+            "upload_rank": int(upload_stats_df.iloc[0]["upload_rank"]) if not upload_stats_df.empty and upload_stats_df.iloc[0]["upload_rank"] is not None else 0
+        }
+
+        executor = CompletionExecutor()
+        return executor.execute('targeting', metrics, max_tokens=300)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 ###################
@@ -620,6 +877,9 @@ async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+###################
+## SWOT 요약약 API ##
+###################
 @chatbot_router.get("/summary/{channel_name}")
 async def analyze_channel_summary(channel_name: str, db_engine=Depends(get_db_engine)):
     """

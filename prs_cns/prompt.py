@@ -18,7 +18,6 @@ PROMPT_revenue = [
             - 평균 조회수 수입: {view_profit_avg:,}원 (유사 규모 채널 기준)
             - 채널 후원 수입: {donation_profit_user:,}원 (전체 {total_channels}개 중 {donation_rank}위)
             - 평균 후원 수입: {donation_profit_avg:,}원 (유사 규모 채널 기준)
-            - 유사 규모 채널 순위: 구독자 ±50만 범위 {similar_size_channels}개 채널 중 {similar_size_rank}위
 
             2. 광고 영상 현황:
             - 광고 영상 수: {ad_count}개 (전체 {total_channels}개 중 {ad_count_rank}위)
