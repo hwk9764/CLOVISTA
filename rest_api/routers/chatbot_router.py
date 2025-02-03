@@ -5,6 +5,7 @@ import json
 
 chatbot_router = APIRouter()
 
+
 class CompletionExecutor:
     def __init__(self, host, api_key, request_id):
         self._host = host
@@ -13,14 +14,15 @@ class CompletionExecutor:
 
     def execute(self, completion_request):
         headers = {
-            'Authorization': self._api_key,
-            'X-NCP-CLOVASTUDIO-REQUEST-ID': self._request_id,
-            'Content-Type': 'application/json; charset=utf-8',
-            'Accept': 'text/event-stream'
+            "Authorization": self._api_key,
+            "X-NCP-CLOVASTUDIO-REQUEST-ID": self._request_id,
+            "Content-Type": "application/json; charset=utf-8",
+            "Accept": "text/event-stream",
         }
         response_content = ""
-        with requests.post(self._host + '/testapp/v1/chat-completions/HCX-003',
-                           headers=headers, json=completion_request, stream=True) as r:
+        with requests.post(
+            self._host + "/testapp/v1/chat-completions/HCX-003", headers=headers, json=completion_request, stream=True
+        ) as r:
             for line in r.iter_lines():
                 if line:
                     data = line.decode("utf-8")
@@ -30,11 +32,13 @@ class CompletionExecutor:
                             response_content = json_data["message"]["content"]
         return response_content
 
+
 def get_db_engine(request: Request):
     """
     FastAPI의 상태 객체에서 DB 엔진을 가져옵니다.
     """
     return request.app.state.db_engine
+
 
 ###################
 ## 채널 수익성 API ##
@@ -58,33 +62,26 @@ async def analyze_profitability(channel_name: str, db_engine=Depends(get_db_engi
     """
     df = pd.read_sql(query, db_engine, params=(channel_name,))
 
-    metrics = {
-        'total_videos': df.iloc[0]['total_videos'],
-        'sponsored_count': df.iloc[0]['sponsored_count']
-    }
+    metrics = {"total_videos": df.iloc[0]["total_videos"], "sponsored_count": df.iloc[0]["sponsored_count"]}
 
     completion_executor = CompletionExecutor(
-        host='https://clovastudio.stream.ntruss.com',
-        api_key='Bearer nv-f5786fde571f424786ed0823986ca992h3P1',
-        request_id='309fa53d16a64d7c9c2d8f67f74ac70d'
+        host="https://clovastudio.stream.ntruss.com",
+        api_key="Bearer nv-f5786fde571f424786ed0823986ca992h3P1",
+        request_id="309fa53d16a64d7c9c2d8f67f74ac70d",
     )
 
-    formatted_prompt = [
-        PROMPT_revenue[0],
-        {"role": "user", "content": PROMPT_revenue[1]['content'].format(**metrics)}
-    ]
-    
-    request_data = {
-        'messages': formatted_prompt,
-        'topP': 0.8,
-        'maxTokens': 2000,
-        'temperature': 0.15,
-        'repeatPenalty': 5.0,
-        'stopBefore': [],
-        'includeAiFilters': False,
-        'seed': 0
-    }
+    formatted_prompt = [PROMPT_revenue[0], {"role": "user", "content": PROMPT_revenue[1]["content"].format(**metrics)}]
 
+    request_data = {
+        "messages": formatted_prompt,
+        "topP": 0.8,
+        "maxTokens": 2000,
+        "temperature": 0.15,
+        "repeatPenalty": 5.0,
+        "stopBefore": [],
+        "includeAiFilters": False,
+        "seed": 0,
+    }
 
     return completion_executor.execute(request_data)
 
@@ -129,46 +126,47 @@ async def analyze_audience_engagement(channel_name: str, db_engine=Depends(get_d
         SELECT * FROM channel_ranks WHERE name = %s
     """
     df = pd.read_sql(query, db_engine, params=(channel_name,))
-    
+
     if df.empty:
         raise HTTPException(status_code=404, detail="Channel not found")
-        
+
     metrics = {
-        'live_count': df.iloc[0]['live_count'],
-        'live_total': df.iloc[0]['total_channels'],
-        'live_rank': df.iloc[0]['live_rank'],
-        'comment_ratio': df.iloc[0]['comment_ratio'],
-        'comment_total': df.iloc[0]['total_channels'],
-        'comment_rank': df.iloc[0]['comment_rank'],
-        'like_ratio': df.iloc[0]['like_ratio'],
-        'like_total': df.iloc[0]['total_channels'],
-        'like_rank': df.iloc[0]['like_rank'],
-        'sponsored_ratio': df.iloc[0]['sponsored_ratio']
+        "live_count": df.iloc[0]["live_count"],
+        "live_total": df.iloc[0]["total_channels"],
+        "live_rank": df.iloc[0]["live_rank"],
+        "comment_ratio": df.iloc[0]["comment_ratio"],
+        "comment_total": df.iloc[0]["total_channels"],
+        "comment_rank": df.iloc[0]["comment_rank"],
+        "like_ratio": df.iloc[0]["like_ratio"],
+        "like_total": df.iloc[0]["total_channels"],
+        "like_rank": df.iloc[0]["like_rank"],
+        "sponsored_ratio": df.iloc[0]["sponsored_ratio"],
     }
-    
+
     completion_executor = CompletionExecutor(
-        host='https://clovastudio.stream.ntruss.com',
-        api_key='Bearer nv-f5786fde571f424786ed0823986ca992h3P1',
-        request_id='309fa53d16a64d7c9c2d8f67f74ac70d'
+        host="https://clovastudio.stream.ntruss.com",
+        api_key="Bearer nv-f5786fde571f424786ed0823986ca992h3P1",
+        request_id="309fa53d16a64d7c9c2d8f67f74ac70d",
     )
 
     formatted_prompt = [
         PROMPT_relation[0],
-        {"role": "user", "content": PROMPT_relation[1]['content'].format(**metrics)}
+        {"role": "user", "content": PROMPT_relation[1]["content"].format(**metrics)},
     ]
-    
+
     request_data = {
-        'messages': formatted_prompt,
-        'topP': 0.8,
-        'maxTokens': 2000,
-        'temperature': 0.15,
-        'repeatPenalty': 5.0,
-        'stopBefore': [],
-        'includeAiFilters': False,
-        'seed': 0
+        "messages": formatted_prompt,
+        "topP": 0.8,
+        "maxTokens": 2000,
+        "temperature": 0.15,
+        "repeatPenalty": 5.0,
+        "stopBefore": [],
+        "includeAiFilters": False,
+        "seed": 0,
     }
-    
+
     return completion_executor.execute(request_data)
+
 
 ###################
 ## 채널 성과 API ##
@@ -198,37 +196,34 @@ async def analyze_performance_engagement(channel_name: str, db_engine=Depends(ge
         FROM video_stats 
         WHERE name = %s
     """
-    
+
     df = pd.read_sql(query, db_engine, params=(channel_name,))
-    
+
     if df.empty:
         raise HTTPException(status_code=404, detail="Channel not found")
-        
-    metrics = {
-        'monthly_uploads': df.iloc[0]['monthly_uploads'],
-        'avg_views': df.iloc[0]['avg_views']
-    }
-    
+
+    metrics = {"monthly_uploads": df.iloc[0]["monthly_uploads"], "avg_views": df.iloc[0]["avg_views"]}
+
     completion_executor = CompletionExecutor(
-        host='https://clovastudio.stream.ntruss.com',
-        api_key='Bearer nv-f5786fde571f424786ed0823986ca992h3P1',
-        request_id='309fa53d16a64d7c9c2d8f67f74ac70d'
+        host="https://clovastudio.stream.ntruss.com",
+        api_key="Bearer nv-f5786fde571f424786ed0823986ca992h3P1",
+        request_id="309fa53d16a64d7c9c2d8f67f74ac70d",
     )
 
     formatted_prompt = [
         PROMPT_performance[0],
-        {"role": "user", "content": PROMPT_performance[1]['content'].format(**metrics)}
+        {"role": "user", "content": PROMPT_performance[1]["content"].format(**metrics)},
     ]
-    
+
     request_data = {
-        'messages': formatted_prompt,
-        'topP': 0.8,
-        'maxTokens': 2000,
-        'temperature': 0.15,
-        'repeatPenalty': 5.0,
-        'stopBefore': [],
-        'includeAiFilters': False,
-        'seed': 0
+        "messages": formatted_prompt,
+        "topP": 0.8,
+        "maxTokens": 2000,
+        "temperature": 0.15,
+        "repeatPenalty": 5.0,
+        "stopBefore": [],
+        "includeAiFilters": False,
+        "seed": 0,
     }
-    
+
     return completion_executor.execute(request_data)
