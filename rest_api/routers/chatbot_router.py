@@ -13,10 +13,10 @@ class CompletionExecutor:
         self._api_key = "Bearer nv-f5786fde571f424786ed0823986ca992h3P1"
         self._request_id = "309fa53d16a64d7c9c2d8f67f74ac70d"
 
-    def execute(self, prompt_type: str, metrics: Dict[str, Any], max_tokens: int = 2000):
+    def execute(self, prompt_type: str, metrics: Dict[str, Any], max_tokens: int = 100):
         from prs_cns.prompt import (PROMPT_revenue, PROMPT_engagement, PROMPT_communication,
-                                  PROMPT_targeting, PROMPT_popular_videos, PROMPT_thumbnail,
-                                  PROMPT_upload_pattern, PROMPT_activity, PROMPT_summary)
+                                    PROMPT_targeting, PROMPT_popular_videos, PROMPT_thumbnail,
+                                    PROMPT_upload_pattern, PROMPT_activity, PROMPT_summary)
         
         prompts = {
             'revenue': PROMPT_revenue,
@@ -76,9 +76,9 @@ def get_db_engine(request: Request):
 
 conn = psycopg2.connect(host="10.28.224.177", port="30634", user="postgres", password="0104", database="postgres")
 query = f"""
-        SELECT "id", "title"
-        FROM "Channel";
-        """
+    SELECT "id", "title"
+    FROM "Channel";
+    """
 with conn.cursor() as cur:
     id_df = pd.read_sql(query, conn)
     name_to_id = {name: int(id) for name, id in zip(id_df["title"].values, id_df["id"].values)}
@@ -90,8 +90,193 @@ with conn.cursor() as cur:
 @chatbot_router.get("/profitability/revenue-analysis/{channel_name}")
 async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
     """CLOVA X를 이용한 채널 수익성 분석"""
-    executor = CompletionExecutor()
-    return executor.execute('revenue', metrics)
+    try:
+        channel_query = f"""
+            SELECT "id", "subscriberCount"
+            FROM "Channel"
+            WHERE "id" = '{name_to_id[channel_name]}'
+        """
+        channel_df = pd.read_sql(channel_query, db_engine)
+        if channel_df.empty:
+            raise HTTPException(status_code=404, detail="Channel not found")
+        
+        channel_id = int(channel_df.iloc[0]['id'])
+        subscriber_count = float(channel_df.iloc[0]['subscriberCount'])
+        
+        total_channels_query = "SELECT COUNT(*) as count FROM \"Channel\""
+        total_channels = pd.read_sql(total_channels_query, db_engine).iloc[0]['count']
+
+        revenue_query = f"""
+            WITH channel_metrics AS (
+                SELECT 
+                    c."id",
+                    CAST(c."viewCount" AS FLOAT) as view_count,
+                    CAST(c."Donation" AS FLOAT) as donation
+                FROM "Channel" c
+            ),
+            channel_ranks AS (
+                SELECT 
+                    cm.id,
+                    RANK() OVER (ORDER BY cm.view_count DESC) as view_rank,
+                    RANK() OVER (ORDER BY cm.donation DESC) as donation_rank
+                FROM channel_metrics cm
+            ),
+            avg_metrics AS (
+                SELECT 
+                    AVG(CAST(c."viewCount" AS FLOAT)) as avg_views,
+                    AVG(CAST(c."Donation" AS FLOAT)) as avg_donation
+                FROM "Channel" c
+                WHERE CAST(c."subscriberCount" AS FLOAT) 
+                BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
+            )
+            SELECT 
+                cm.view_count,
+                cm.donation,
+                cr.view_rank,
+                cr.donation_rank,
+                am.avg_views,
+                am.avg_donation
+            FROM channel_metrics cm
+            JOIN channel_ranks cr ON cm.id = cr.id
+            CROSS JOIN avg_metrics am
+            WHERE cm.id = '{channel_id}'
+        """
+        
+        revenue_df = pd.read_sql(revenue_query, db_engine)
+        
+        viewcount = int(revenue_df.iloc[0]["view_count"])
+        avg_viewcount = int(revenue_df.iloc[0]["avg_views"])
+        view_profit_user = int((viewcount * 2 + viewcount * 4.5) / 2)
+        view_profit_avg = int((avg_viewcount * 2 + avg_viewcount * 4.5) / 2)
+
+        ad_query = f"""
+            WITH video_metrics AS (
+                SELECT
+                    COUNT(*) as ad_count,
+                    SUM(CAST("videoViewCount" AS FLOAT)) as total_views,
+                    SUM(CAST("videoLikeCount" AS FLOAT)) as total_likes,
+                    SUM(CAST("commentCount" AS FLOAT)) as total_comments
+                FROM "Video"
+                WHERE "channel_id" = '{channel_id}' AND "hasPaidProductPlacement" = true
+            ),
+            ad_ranks AS (
+                SELECT 
+                    v."channel_id",
+                    RANK() OVER (ORDER BY COUNT(*) DESC) as ad_count_rank
+                FROM "Video" v
+                WHERE v."hasPaidProductPlacement" = true
+                GROUP BY v."channel_id"
+            )
+            SELECT 
+                vm.*,
+                ar.ad_count_rank
+            FROM video_metrics vm
+            CROSS JOIN ad_ranks ar
+            WHERE ar.channel_id = '{channel_id}'
+        """
+        
+        ad_df = pd.read_sql(ad_query, db_engine)
+
+        comparison_query = f"""
+            WITH video_stats AS (
+                SELECT
+                    "hasPaidProductPlacement",
+                    COUNT(*) as video_count,
+                    COUNT(*) / 3.0 as monthly_rate,
+                    AVG(CAST("videoViewCount" AS FLOAT)) as avg_views,
+                    AVG(CAST("videoLikeCount" AS FLOAT) / NULLIF(CAST("videoViewCount" AS FLOAT), 0) * 100) as avg_like_ratio,
+                    AVG(CAST("commentCount" AS FLOAT) / NULLIF(CAST("videoViewCount" AS FLOAT), 0) * 100) as avg_comment_ratio
+                FROM "Video"
+                WHERE "channel_id" = '{channel_id}'
+                GROUP BY "hasPaidProductPlacement"
+            )
+            SELECT * FROM video_stats
+        """
+        
+        comparison_df = pd.read_sql(comparison_query, db_engine)
+
+        ad_ratio_query = f"""
+            WITH channel_ad_ratios AS (
+                SELECT 
+                    channel_id,
+                    COUNT(*) FILTER (WHERE "hasPaidProductPlacement" = true)::float / 
+                    NULLIF(COUNT(*), 0) * 100 as ad_ratio
+                FROM "Video"
+                GROUP BY channel_id
+            )
+            SELECT RANK() OVER (ORDER BY ad_ratio DESC) as ad_ratio_rank
+            FROM channel_ad_ratios
+            WHERE channel_id = '{channel_id}'
+        """
+        
+        ad_ratio_df = pd.read_sql(ad_ratio_query, db_engine)
+        
+        metrics = {
+            "view_profit_user": view_profit_user,
+            "view_profit_avg": view_profit_avg,
+            "donation_profit_user": int(revenue_df.iloc[0]['donation']),
+            "donation_profit_avg": int(revenue_df.iloc[0]['avg_donation']),
+            "view_rank": int(revenue_df.iloc[0]['view_rank']),
+            "donation_rank": int(revenue_df.iloc[0]['donation_rank']),
+            "total_channels": total_channels,
+            "ad_count": int(ad_df.iloc[0]['ad_count']) if not ad_df.empty else 0,
+            "ad_count_rank": int(ad_df.iloc[0]['ad_count_rank']) if not ad_df.empty else 0,
+            "total_views": int(ad_df.iloc[0]['total_views']) if not ad_df.empty else 0,
+            "total_likes": int(ad_df.iloc[0]['total_likes']) if not ad_df.empty else 0,
+            "total_comments": int(ad_df.iloc[0]['total_comments']) if not ad_df.empty else 0,
+            "normal_count": int(comparison_df[comparison_df['hasPaidProductPlacement']==False]['video_count'].iloc[0]),
+            "ad_count": int(comparison_df[comparison_df['hasPaidProductPlacement']==True]['video_count'].iloc[0]),
+            "normal_update_rate": round(float(comparison_df[comparison_df['hasPaidProductPlacement']==False]['monthly_rate'].iloc[0]), 1),
+            "ad_update_rate": round(float(comparison_df[comparison_df['hasPaidProductPlacement']==True]['monthly_rate'].iloc[0]), 1),
+            "normal_view_avg": int(comparison_df[comparison_df['hasPaidProductPlacement']==False]['avg_views'].iloc[0]),
+            "ad_view_avg": int(comparison_df[comparison_df['hasPaidProductPlacement']==True]['avg_views'].iloc[0]),
+            "normal_like_ratio": float(comparison_df[comparison_df['hasPaidProductPlacement']==False]['avg_like_ratio'].iloc[0]),
+            "ad_like_ratio": float(comparison_df[comparison_df['hasPaidProductPlacement']==True]['avg_like_ratio'].iloc[0]),
+            "normal_comment_ratio": float(comparison_df[comparison_df['hasPaidProductPlacement']==False]['avg_comment_ratio'].iloc[0]),
+            "ad_comment_ratio": float(comparison_df[comparison_df['hasPaidProductPlacement']==True]['avg_comment_ratio'].iloc[0]),
+            "ad_ratio_rank": int(ad_ratio_df.iloc[0]['ad_ratio_rank']) if not ad_ratio_df.empty else 0
+        }
+
+        total_videos = metrics['normal_count'] + metrics['ad_count']
+        metrics['ad_ratio'] = (metrics['ad_count'] / total_videos * 100) if total_videos > 0 else 0
+        metrics['view_comparison_ratio'] = metrics['ad_view_avg'] / metrics['normal_view_avg'] if metrics['normal_view_avg'] > 0 else 0
+        metrics['like_comparison_ratio'] = metrics['ad_like_ratio'] / metrics['normal_like_ratio'] if metrics['normal_like_ratio'] > 0 else 0
+        metrics['comment_comparison_ratio'] = metrics['ad_comment_ratio'] / metrics['normal_comment_ratio'] if metrics['normal_comment_ratio'] > 0 else 0
+
+        competitor_query = f"""
+            WITH competitor_metrics AS (
+                SELECT 
+                    AVG(CAST("videoViewCount" AS FLOAT)) as avg_views,
+                    AVG(CAST("videoLikeCount" AS FLOAT)) as avg_likes,
+                    AVG(CAST("commentCount" AS FLOAT)) as avg_comments
+                FROM "Video" v
+                JOIN "Channel" c ON v.channel_id = c.id
+                WHERE v."hasPaidProductPlacement" = true
+                AND CAST(c."subscriberCount" AS FLOAT) 
+                BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
+                AND v.channel_id != '{channel_id}'
+            )
+            SELECT * FROM competitor_metrics
+        """
+        competitor_df = pd.read_sql(competitor_query, db_engine)
+
+        metrics['avg_views_per_video'] = metrics['total_views'] / metrics['ad_count'] if metrics['ad_count'] > 0 else 0
+        metrics['avg_likes_per_video'] = metrics['total_likes'] / metrics['ad_count'] if metrics['ad_count'] > 0 else 0
+        metrics['avg_comments_per_video'] = metrics['total_comments'] / metrics['ad_count'] if metrics['ad_count'] > 0 else 0
+
+        competitor_avg_views = float(competitor_df.iloc[0]['avg_views']) if not competitor_df.empty and not pd.isna(competitor_df.iloc[0]['avg_views']) else 1
+        competitor_avg_likes = float(competitor_df.iloc[0]['avg_likes']) if not competitor_df.empty and not pd.isna(competitor_df.iloc[0]['avg_likes']) else 1
+        competitor_avg_comments = float(competitor_df.iloc[0]['avg_comments']) if not competitor_df.empty and not pd.isna(competitor_df.iloc[0]['avg_comments']) else 1
+
+        metrics['view_ratio'] = metrics['avg_views_per_video'] / competitor_avg_views if competitor_avg_views > 0 else 0
+        metrics['like_ratio'] = metrics['avg_likes_per_video'] / competitor_avg_likes if competitor_avg_likes > 0 else 0
+        metrics['comment_ratio'] = metrics['avg_comments_per_video'] / competitor_avg_comments if competitor_avg_comments > 0 else 0
+
+        executor = CompletionExecutor()
+        return executor.execute('revenue', metrics, max_tokens=150)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 ###################
 ## 시청자 관계 API ##
@@ -230,7 +415,7 @@ async def analyze_engagement(channel_name: str, db_engine=Depends(get_db_engine)
         }
 
         executor = CompletionExecutor()
-        return executor.execute('engagement', metrics, max_tokens=300)
+        return executor.execute('engagement', metrics, max_tokens=150)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -363,7 +548,7 @@ async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engi
         }
 
         executor = CompletionExecutor()
-        return executor.execute('communication', metrics, max_tokens=300)
+        return executor.execute('communication', metrics, max_tokens=150)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -472,14 +657,14 @@ async def analyze_targeting(channel_name: str, db_engine=Depends(get_db_engine))
             if tags:
                 all_keywords.extend(
                     [tag.strip("#").strip("{}").lower().replace('"', "").replace("\\", "").replace("\n", "")
-                     for tag in tags.split(",")]
+                        for tag in tags.split(",")]
                 )
         for desc in keyword_df["videoDescription"]:
             if desc:
                 all_keywords.extend(
                     [word.strip("#").lower().replace('"', "").replace("\\", "").replace("\n", "")
-                     for word in desc.split("#")
-                     if word.strip()]
+                        for word in desc.split("#")
+                        if word.strip()]
                 )
         
         from collections import Counter
@@ -499,7 +684,7 @@ async def analyze_targeting(channel_name: str, db_engine=Depends(get_db_engine))
         }
 
         executor = CompletionExecutor()
-        return executor.execute('targeting', metrics, max_tokens=300)
+        return executor.execute('targeting', metrics, max_tokens=150)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -576,7 +761,7 @@ async def analyze_popular_videos(channel_name: str, db_engine=Depends(get_db_eng
         }
 
         executor = CompletionExecutor()
-        return executor.execute('popular_videos', metrics, max_tokens=300)
+        return executor.execute('popular_videos', metrics, max_tokens=150)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -647,7 +832,7 @@ async def analyze_thumbnails(channel_name: str, db_engine=Depends(get_db_engine)
         }
 
         executor = CompletionExecutor()
-        return executor.execute('thumbnail', metrics, max_tokens=300)
+        return executor.execute('thumbnail', metrics, max_tokens=150)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -754,7 +939,7 @@ async def analyze_upload_pattern(channel_name: str, db_engine=Depends(get_db_eng
         }
 
         executor = CompletionExecutor()
-        return executor.execute('upload_pattern', metrics, max_tokens=300)
+        return executor.execute('upload_pattern', metrics, max_tokens=150)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -872,7 +1057,7 @@ async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
         }
 
         executor = CompletionExecutor()
-        return executor.execute('activity', metrics, max_tokens=300)
+        return executor.execute('activity', metrics, max_tokens=150)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
