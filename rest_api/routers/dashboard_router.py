@@ -379,17 +379,31 @@ async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_en
     """
 
     try:
-        engagement_query = f"""
+        engagement_query = """
+            WITH video_stats AS (
+                SELECT 
+                    CAST(v."videoViewCount" AS INTEGER) as views,
+                    CAST(v."videoLikeCount" AS INTEGER) as likes,
+                    CAST(v."commentCount" AS INTEGER) as comments,
+                    CAST(v."videoShareCount" AS INTEGER) as shares
+                FROM public."Video" v
+                WHERE v."channel_id" = %(channel_id)s
+                AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
+            )
             SELECT 
-                SUM(CAST(v."videoViewCount" AS INTEGER)) as total_views,
-                SUM(CAST(v."videoLikeCount" AS INTEGER)) as total_likes,
-                SUM(CAST(v."commentCount" AS INTEGER)) as total_comments,
-                SUM(CAST(v."videoShareCount" AS INTEGER)) as total_shares
-            FROM public."Video" v
-            WHERE v."channel_id" = '{name_to_id[channel_name]}'
-            AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
-        """
-        df = pd.read_sql(engagement_query, db_engine)
+                SUM(vs.views) as total_views,
+                SUM(vs.likes) as total_likes,
+                SUM(vs.comments) as total_comments,
+                SUM(vs.shares) as total_shares,
+                MAX(CASE WHEN vs.views > 0 THEN (vs.likes::float / vs.views * 100) END) as max_like_ratio,
+                MIN(NULLIF(CASE WHEN vs.views > 0 THEN (vs.likes::float / vs.views * 100) END, 0)) as min_like_ratio,
+                MAX(CASE WHEN vs.views > 0 THEN (vs.comments::float / vs.views * 100) END) as max_comment_ratio,
+                MIN(NULLIF(CASE WHEN vs.views > 0 THEN (vs.comments::float / vs.views * 100) END, 0)) as min_comment_ratio,
+                MAX(CASE WHEN vs.views > 0 THEN (vs.shares::float / vs.views * 100) END) as max_share_ratio,
+                MIN(NULLIF(CASE WHEN vs.views > 0 THEN (vs.shares::float / vs.views * 100) END, 0)) as min_share_ratio
+            FROM video_stats vs
+            """
+        df = pd.read_sql(engagement_query, db_engine, params={"channel_id": name_to_id[channel_name]})
 
         total_views = float(df.iloc[0]["total_views"]) if df.iloc[0]["total_views"] is not None else 0
         total_likes = float(df.iloc[0]["total_likes"]) if df.iloc[0]["total_likes"] is not None else 0
@@ -400,18 +414,21 @@ async def get_audience_engagement(channel_name: str, db_engine=Depends(get_db_en
         comment_ratio = (total_comments / total_views * 100) if total_views > 0 else 0
         share_ratio = (total_shares / total_views * 100) if total_views > 0 else 0
 
+        return [{
+            "좋아요 비율": f"{like_ratio:.2f}%",
+            "댓글 비율": f"{comment_ratio:.2f}%", 
+            "공유 비율": f"{share_ratio:.2f}%",
+            "최대 좋아요 비율": f"{df.iloc[0]['max_like_ratio'] if df.iloc[0]['max_like_ratio'] is not None else 0:.2f}%",
+            "최소 좋아요 비율": f"{df.iloc[0]['min_like_ratio'] if df.iloc[0]['min_like_ratio'] is not None else 0:.2f}%",
+            "최대 댓글 비율": f"{df.iloc[0]['max_comment_ratio'] if df.iloc[0]['max_comment_ratio'] is not None else 0:.2f}%",
+            "최소 댓글 비율": f"{df.iloc[0]['min_comment_ratio'] if df.iloc[0]['min_comment_ratio'] is not None else 0:.2f}%",
+            "최대 공유 비율": f"{df.iloc[0]['max_share_ratio'] if df.iloc[0]['max_share_ratio'] is not None else 0:.2f}%",
+            "최소 공유 비율": f"{df.iloc[0]['min_share_ratio'] if df.iloc[0]['min_share_ratio'] is not None else 0:.2f}%"
+            }]
     except KeyError:
         raise HTTPException(status_code=404, detail="Channel not found.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-
-    return [
-        {
-            "좋아요 비율": f"{convert_type(like_ratio)}%",
-            "댓글 비율": f"{convert_type(comment_ratio)}%",
-            "공유 비율": f"{convert_type(share_ratio)}%",
-        }
-    ]
 
 
 @dashboard_router.get("/audience/creator-communication/{channel_name}")
@@ -453,7 +470,9 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
 
         # 경쟁 채널들의 라이브 수
         competitor_live_query = f"""
-            SELECT COALESCE(AVG("LiveBroadcastingCount"), 0) as avg_competitor_live
+            SELECT 
+                COALESCE(AVG("LiveBroadcastingCount"), 0) as avg_competitor_live,
+                (SELECT MAX("LiveBroadcastingViewer") FROM public."Channel") as max_live_viewer
             FROM public."Channel"
             WHERE CAST("subscriberCount" AS FLOAT) 
             BETWEEN CAST({subscriber_count} AS FLOAT) - 500000 AND CAST({subscriber_count} AS FLOAT) + 500000
@@ -498,6 +517,7 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
                 "라이브 수": int(live_data["LiveBroadcastingCount"]),
                 "경쟁 채널 라이브 수": int(competitor_live["avg_competitor_live"]),
                 "라이브 평균 시청자 수": int(live_data["LiveBroadcastingViewer"]),
+                "라이브 최대 시청자 수": int(competitor_live["max_live_viewer"]),
                 "대댓글 수": int(replies_data["reply_count"]),
                 "경쟁 채널 평균 대댓글 수": int(competitor_replies["avg_competitor_replies"]),
             }
