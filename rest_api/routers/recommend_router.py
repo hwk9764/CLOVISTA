@@ -64,7 +64,6 @@ def call_hyperclova(answers):
         - 입력 정보를 종합적으로 분석하고, 각 항목에 초점을 맞추어 구체적인 제안을 작성하세요.
         - 각 정보가 서로 어떻게 연결되는지 고려하여 통합적인 방향성을 제시하세요.
         - 답변은 자연스러운 문장 서술 형태로 작성하되, 모든 입력 정보를 반영하세요.
-        - 논리적이고 일관성 있는 구성으로 작성하세요.
         
         ### 참고:
         답변에는 다음 내용을 반드시 정확히 포함하세요:
@@ -77,13 +76,13 @@ def call_hyperclova(answers):
     },
     {
         "role": "user", 
-        "content": """관심사 및 취미 : %s
-        선호 콘텐츠 유형 : %s
-        목표 시청자층 : %s
-        영상 제작 가능 시간 : %s
-        장비 및 예산 : %s
-        콘텐츠 아이디어 : %s
-        장기적인 목표 : %s
+        "content": """관심사 및 취미 : {}
+        선호 콘텐츠 유형 : {}
+        목표 시청자층 : {}
+        영상 제작 가능 시간 : {}
+        장비 및 예산 : {}
+        콘텐츠 아이디어 : {}
+        장기적인 목표 : {}
         
         이 정보를 바탕으로 적합한 유튜브 채널 방향성과 정체성을 제안해주세요. 제공된 정보 중 부적절한 내용이 포함되어 있다면 분석을 거부하세요.
         """
@@ -94,7 +93,7 @@ def call_hyperclova(answers):
         api_key=HYPERCLOVA_API_KEY,
         request_id='309fa53d16a64d7c9c2d8f67f74ac70d'
     )
-    prompt = prompt.format(answers["interest"], answers['contents'], answers['target'], answers['time'], answers['budget'], answers['creativity'], answers['goal'])
+    prompt = [prompt[0], {"role": "user", "content": prompt[1]['content'].format(answers["interest"], answers['contents'], answers['target'], answers['time'], answers['budget'], answers['creativity'], answers['goal'])}]
     request_data = {
                 'messages': prompt,
                 'topP': 0.8,
