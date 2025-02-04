@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from fastapi.middleware.cors import CORSMiddleware
 from rest_api.routers.dashboard_router import dashboard_router
 from rest_api.routers.chatbot_router import chatbot_router
+from rest_api.routers.sensitive_router import sensitive_router
 
 # DB 접속 정보
 host = "10.28.224.177"
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     # 라우터 등록
     app.include_router(dashboard_router, prefix="/dashboard", tags=["Dashboard"])
     app.include_router(chatbot_router, prefix="/chatbot", tags=["Chatbot"])
+    app.include_router(sensitive_router, prefix="/sensitive", tags=["sensitive"])
 
     # 앱 상태에 DB 엔진 저장 (라우터에서 접근 가능)
     app.state.db_engine = engine
