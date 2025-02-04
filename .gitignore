@@ -1,6 +1,6 @@
 .venv/
 *.csv
-*.json
+# *.json
 *.csv
 # *.ipynb
 
