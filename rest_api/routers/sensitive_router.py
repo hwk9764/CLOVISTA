@@ -1,7 +1,8 @@
+import os
 import time
 import json
 import requests
-from fastapi import APIRouter
+from fastapi import HTTPException, APIRouter, UploadFile, File
 from prs_cns.prompt import PROMPT_sensitive
 
 sensitive_router = APIRouter()
@@ -66,56 +67,125 @@ completion_executor = CompletionExecutor(
 )
 
 
-@sensitive_router.post("/result/{files}")
-async def result(files: str):
-    # mp.3 등 파일 받아서 TTS 진행
+@sensitive_router.get("/result/{user_id}")
+async def result(user_id: str):
+    # 파일 확인
+    user_id = "test"
+    upload_dir = f"./uploads/{user_id}"
+    files = os.listdir(upload_dir)
+    title = [x.split(".")[0] for x in files]
+    title = set(title)
 
-    # 우선 데모 파일에서 텍스트 추출
-    ex1_text = ""
-    with open("ex1.json", "r", encoding="utf-8") as file:
-        ex1 = json.load(file)
-        for x in ex1["segments"]:
-            ex1_text += x.get("text") + " "
+    # 분석 완료되었는지 확인
+    result = []
+    for t in title:
+        output = {}
+        t_ = t + ".json"
+        if t_ in files:
+            output["status"] = 1
+            output["title"] = t
+            with open(upload_dir + "/" + t_, "r", encoding="utf-8") as file:
+                data = json.load(file)
+            output.update(data)
+            print(output)
+        else:
+            output["status"] = 0
+            output["title"] = t
+        result.append(output)
 
-    # 전처리
-    ex1_text_add = "제목: 대본 하나 없이 즉흥 애드립으로 웃기기\n스크립트: " + ex1_text
+    return result
 
-    print("#### 결과 출력 중")
-    # # 결과 출력
-    # formatted_prompt = [
-    #     PROMPT_sensitive[0],
-    #     {"role": "user", "content": PROMPT_sensitive[1]["content"].format(ex1_text_add)},
-    # ]
-    # request_data = {
-    #     "messages": formatted_prompt,
-    #     "topP": 0.7,
-    #     "topK": 0,
-    #     "maxTokens": 512,
-    #     "temperature": 0.2,
-    #     "repeatPenalty": 12,
-    #     "stopBefore": [],
-    #     "includeAiFilters": False,
-    #     "seed": 104,
-    # }
-    # pred = completion_executor.execute_retry(request_data)
-    pred = """민감한 문장 추출:
-    1. "눈을 씨발 앞에서 사람이 말하는데" (탐지된 키워드/패턴: 욕설)
-    2. "소개팅 딱 한번 해봤거든요. 시발 그거 트라우마 생겨서 진짜 안 한단 말이에요." (탐지된 키워드/패턴: 욕설, 트라우마)
 
-    발생 가능성:
-    - 점수: 높음 (7점)
-    - 이유: 욕설과 트라우마를 언급하는 표현이 포함되어 있으며, 이러한 표현은 논란을 일으킬 가능성이 높습니다.
-    - 개선 방안: 코미디 장르에서는 풍자적이고 과장된 표현이 용인되지만, 욕설과 트라우마를 언급하는 표현은 민감한 주제로 간주될 수 있으므로 주의가 필요합니다.
+# CLOVA Speech API 요청
+def clova_speech_stt(file_path):
+    headers = {"X-CLOVASPEECH-API-KEY": "2f5cb96d73cf49459e862d2cc5be6407"}
+    files = {
+        "media": open(file_path, "rb"),
+        "params": (None, json.dumps({"language": "ko-KR", "completion": "sync"}).encode("UTF-8"), "application/json"),
+    }
+    response = requests.post(
+        "https://clovaspeech-gw.ncloud.com/external/v1/10094/9409a0f5da32cf23f7c4ecb52ef04a38ea2e6612670a3a4207613b2523ecf473/recognizer/upload",
+        headers=headers,
+        files=files,
+    )
+    return response.json()
 
-    심각성:
-    - 점수: 중간 (3점)
-    - 이유: 욕설과 트라우마를 언급하는 표현이 포함되어 있지만, 심각한 사회적, 경제적, 법적 영향을 미칠 가능성은 상대적으로 낮습니다.
-    - 개선 방안: 심각한 영향을 미칠 가능성은 낮지만, 표현에 주의를 기울이고, 시청자들에게 불쾌감을 줄 수 있는 표현을 자제하는 것이 좋습니다.
 
-    영향 범위:
-    - 점수: 중간 (3점)
-    - 이유: 지역적 이슈를 다루는 스텐드업 코미디로, 다양한 대상을 다루지는 않지만, 일부 시청자들에게 영향을 미칠 수 있습니다.
-    - 개선 방안: 지역적 이슈를 다루더라도, 다양한 대상을 고려하여 표현을 선택하고, 시청자들의 다양한 관점을 존중하는 것이 좋습니다.
-    """
+@sensitive_router.post("/analysis/")
+async def analysis(user_id: str, file: UploadFile = File(...)):
+    # 확장자 체크
+    if file.filename.split(".")[-1] not in ["mp3", "mp4"]:
+        raise HTTPException(status_code=400, detail="mp3, mp4 확장자로 올려주세요.")
 
-    return pred
+    # 파일 이름 생성
+    upload_dir = f"./uploads/{user_id}"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, file.filename)
+
+    # 파일 저장
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+    print(f"{file_path} 저장 완료")
+
+    # STT 실행
+    result = clova_speech_stt(file_path)
+    all_text = ""
+    for x in result["segments"]:
+        all_text += x.get("text") + " "
+    print("STT 완료")
+
+    # 민감도 분석 시작
+    title = file.filename.split(".")[0]
+    print(title)
+    all_text_add = f"제목: {title}\n스크립트: " + all_text
+    print(all_text_add)
+
+    formatted_prompt = [
+        PROMPT_sensitive[0],
+        {"role": "user", "content": PROMPT_sensitive[1]["content"].format(all_text_add)},
+    ]
+    request_data = {
+        "messages": formatted_prompt,
+        "topP": 0.7,
+        "topK": 0,
+        "maxTokens": 512,
+        "temperature": 0.2,
+        "repeatPenalty": 1.2,
+        "stopBefore": [],
+        "includeAiFilters": False,
+        "seed": 104,
+    }
+
+    pred = completion_executor.execute_retry(request_data)
+    print("민감도 분석 완료")
+    print(pred)
+
+    # 후처리
+    def get_score_text(text):
+        score = text.split("\n")[0].split(":")[-1].split("(")[0].strip()
+        text = text.split("\n")[1:]
+        text = "\n".join([x.strip() for x in text])
+        return score, text
+
+    selected_text = pred.split("민감한 문장 추출:")[1].split("발생 가능성:")[0].strip()
+    prob = pred.split("발생 가능성:")[1].split("심각성:")[0].strip()
+    prob_score, prob_text = get_score_text(prob)
+    danger = pred.split("심각성:")[1].split("영향 범위:")[0].strip()
+    danger_score, danger_text = get_score_text(danger)
+    scope = pred.split("영향 범위:")[-1].strip()
+    scope_score, scope_text = get_score_text(scope)
+
+    # 결과 저장
+    output_json = {
+        "selected_text": selected_text,
+        "prob_score": prob_score,
+        "prob_text": prob_text,
+        "danger_score": danger_score,
+        "danger_text": danger_text,
+        "scope_score": scope_score,
+        "scope_text": scope_text,
+    }
+    with open(upload_dir + "/" + title + ".json", "w") as json_file:
+        json.dump(output_json, json_file, ensure_ascii=False, indent=4)
+
+    return output_json
