@@ -43,7 +43,7 @@ const Survey = () => {
     localStorage.setItem('user', JSON.stringify(storedUser));
 
     alert('설문조사가 완료되었습니다.');
-    // navigate('/main');
+    navigate('/main');
   };
 
   return (

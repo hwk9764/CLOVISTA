@@ -130,7 +130,6 @@
   height: auto; 
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* 내부 요소 간 균등 분배 */
   align-items: center; /* 가운데 정렬 */
   gap: 20px;
 }
@@ -178,13 +177,15 @@
 }
 
 .video-title {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: block;
-  animation: marquee 10s linear infinite;
+  font-size: 14px;
+  font-weight: bold;
+  color: #555;
+  line-height: 1.8;
+  margin-bottom: 10px;
+  overflow: hidden; /* 넘치는 텍스트를 숨김 */
+  text-overflow: ellipsis; /* 생략 표시 추가 */
+  max-width: 100%; /* 카드의 너비에 맞게 제한 */
 }
-
 
 .video-detail {
   display: flex;
@@ -202,4 +203,28 @@
 .video-detail span:last-child {
   text-align: right;
   color: #777;
+}
+/*영상 클로바 분석 카드*/
+.analysis-wrapper {
+  background-color: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  height: auto;
+}
+
+.analysis-box {
+  border: 2px solid #b2d8b2;
+  background-color: #f9fff9;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  font-family: "Arial", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: #333;
+  text-align: left;
+  margin-bottom: 30px; /* 분석 박스의 바닥 여백 추가 */
+  height: 80%;
 }

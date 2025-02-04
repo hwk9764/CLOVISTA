@@ -11,21 +11,21 @@ import {
   BarElement,
   LineElement,
   PointElement,
-  ArcElement, 
+  ArcElement,
   Title,
   Tooltip,
   Legend,
 } from "chart.js";
 
 ChartJS.register(
-  CategoryScale, 
-  LinearScale, 
-  BarElement, 
-  LineElement, 
-  PointElement, 
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
   ArcElement,
-  Title, 
-  Tooltip, 
+  Title,
+  Tooltip,
   Legend
 );
 
@@ -179,7 +179,9 @@ const SwotRevenue = () => {
             <h4>가장 성적이 좋은 광고영상</h4>
             {bestAd ? (
               <>
-                <img src={bestAd.썸네일} alt="Best Ad" className="ad-thumbnail" />
+                <div className="ad-thumbnail-wrapper">
+                  <img src={bestAd.썸네일} alt="Best Ad" className="ad-thumbnail" />
+                </div>
                 <div className="ad-content">
                   <div className="ad-info">
                     <p className="ad-title">{bestAd.제목}</p>
@@ -220,7 +222,9 @@ const SwotRevenue = () => {
             <h4>가장 성적이 안 좋은 광고영상</h4>
             {worstAd ? (
               <>
-                <img src={worstAd.썸네일} alt="Worst Ad" className="ad-thumbnail" />
+                <div className="ad-thumbnail-wrapper">
+                  <img src={worstAd.썸네일} alt="Worst Ad" className="ad-thumbnail" />
+                </div>
                 <div className="ad-content">
                   <div className="ad-info">
                     <p className="ad-title">{worstAd.제목}</p>

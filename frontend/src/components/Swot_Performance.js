@@ -261,7 +261,9 @@ const Performance = () => {
                     className="thumbnail"
                   />
                   <div className="video-info">
-                    <p className="video-title">{video["제목"]}</p>
+                    <div className="video-title">
+                      {video["제목"]}
+                    </div>
                     <div className="video-detail">
                       <span>조회수</span>
                       <span>{video["조회수"]}</span>
@@ -289,8 +291,12 @@ const Performance = () => {
               <p>로딩 중...</p>
             )}
           </div>
-          <div>
-            {popular_video_analysis}
+          <div className="analysis-wrapper">
+            {popular_video_analysis ? (
+              <div className="analysis-box">{popular_video_analysis}</div>
+            ) : (
+              <p>Loading...</p>
+            )}
           </div>
         </div>
         {/* 많은 사랑을 받은 썸네일 */}
@@ -306,7 +312,9 @@ const Performance = () => {
                     className="thumbnail"
                   />
                   <div className="video-info">
-                    <p className="video-title">{thumb["제목"]}</p>
+                    <div className="video-title">
+                      {thumb["제목"]}
+                    </div>
                     <div className="video-detail">
                       <span>조회수</span>
                       <span>{thumb["조회수"]}</span>
@@ -334,10 +342,15 @@ const Performance = () => {
               <p>로딩 중...</p>
             )}
           </div>
-          <div>
-            {popular_thumbnail_analysis}
-          </div>
+          <div className="analysis-wrapper">
+          {popular_thumbnail_analysis ? (
+            <div className="analysis-box">{popular_thumbnail_analysis}</div>
+          ) : (
+            <p>Loading...</p>
+          )}
         </div>
+        </div>
+
 
         {/* 채널 성장 추세 */}
         {growthChartData && (
@@ -412,9 +425,13 @@ const Performance = () => {
                 plugins: { legend: { display: false } },
               }}
             />
-            <p>
-              {freq_upload_analysis}
-            </p>
+            <div className="analysis-wrapper">
+              {freq_upload_analysis ? (
+                <div className="analysis-box">{freq_upload_analysis}</div>
+              ) : (
+                <p>Loading...</p>
+              )}
+            </div>
           </div>
         )}
 
@@ -428,7 +445,7 @@ const Performance = () => {
                 responsive: false,
                 plugins: {
                   legend: {
-                    display:false
+                    display: false
                   },
                   tooltip: {
                     callbacks: {
@@ -444,9 +461,13 @@ const Performance = () => {
               style={{ position: 'relative', height: '300px', width: '300px' }}
 
             />
-            <p>
-              {activation_analysis}
-            </p>
+            <div className="analysis-wrapper">
+              {activation_analysis ? (
+                <div className="analysis-box">{activation_analysis}</div>
+              ) : (
+                <p>Loading...</p>
+              )}
+            </div>
           </div>
         )}
 
