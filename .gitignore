@@ -1,7 +1,8 @@
 .venv/
 *.csv
-# *.json
+*.json
 *.csv
+uploads/
 # *.ipynb
 
 # My custom
