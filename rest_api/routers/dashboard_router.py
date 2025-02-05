@@ -8,11 +8,17 @@ dashboard_router = APIRouter()
 
 # 소수점 자르기
 def convert_type(x):
-    return int(x) if x.is_integer() else x
+    if isinstance(x, float):
+        return int(x) if x.is_integer() else x
+    return x
 
 
 # 숫자 직관화
 def simplify(x):
+
+    if x is None:
+        return 0
+
     if x >= 1e8:
         return f"{convert_type(round(x/1e8, 1))}억"
     elif x >= 1e4:
@@ -159,23 +165,63 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
          }]
     """
     # 최근 90일
+    query = f"""
+    WITH ad_stats AS (
+        SELECT
+            SUM(CAST(v."videoViewCount" AS FLOAT)) AS viewcount,
+            SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS likecount,
+            SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS commentcount,
+            COUNT(*) AS videocount
+        FROM public."Video" v
+        LEFT JOIN public."Channel" c
+        ON v."channel_id" = c."id"
+        WHERE v."channel_id" = '{name_to_id[channel_name]}' 
+              AND v."hasPaidProductPlacement" = true
+              AND CAST(v."videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
+    ),
+    non_ad_stats AS (
+        SELECT
+            SUM(CAST(v."videoViewCount" AS FLOAT)) AS viewcount,
+            SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS likecount,
+            SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS commentcount,
+            COUNT(*) AS videocount
+        FROM public."Video" v
+        LEFT JOIN public."Channel" c
+        ON v."channel_id" = c."id"
+        WHERE v."channel_id" = '{name_to_id[channel_name]}' 
+              AND v."hasPaidProductPlacement" = false
+              AND CAST(v."videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
+    )
+    SELECT 
+        non_ad_stats.viewcount, 
+        non_ad_stats.likecount, 
+        non_ad_stats.commentcount, 
+        non_ad_stats.videocount,
+        ad_stats.viewcount AS ad_viewcount, 
+        ad_stats.likecount AS ad_likecount, 
+        ad_stats.commentcount AS ad_commentcount, 
+        ad_stats.videocount AS ad_videocount
+    FROM non_ad_stats, ad_stats
+    """
+
+    # 전체
     # query = f"""
     #     WITH compare AS (
     #             SELECT
-    #                     SUM(CAST(v."videoViewCount" AS FLOAT)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS viewcount,
-    #                     SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS likecount,
-    #                     SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS commentcount,
-    #                     COUNT(*) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS videocount
+    #                     SUM(CAST(v."videoViewCount" AS FLOAT))  AS viewcount,
+    #                     SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS likecount,
+    #                     SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS commentcount,
+    #                     COUNT(*) AS videocount
     #             FROM public."Video" v
     #             LEFT JOIN public."Channel" c
     #             ON v."channel_id" = c."id"
     #             WHERE v."channel_id" = '{name_to_id[channel_name]}' AND v."hasPaidProductPlacement" = false
     #             UNION ALL
     #             SELECT
-    #                     SUM(CAST(v."videoViewCount" AS FLOAT)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS viewcount,
-    #                     SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS likecount,
-    #                     SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS commentcount,
-    #                     COUNT(*) FILTER (WHERE CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days') AS videocount
+    #                     SUM(CAST(v."videoViewCount" AS FLOAT)) AS viewcount,
+    #                     SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS likecount,
+    #                     SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS commentcount,
+    #                     COUNT(*) AS videocount
     #             FROM public."Video" v
     #             LEFT JOIN public."Channel" c
     #             ON v."channel_id" = c."id"
@@ -184,33 +230,6 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
     #     SELECT *
     #     FROM compare
     #     """
-
-    # 전체
-    query = f"""
-        WITH compare AS (
-                SELECT
-                        SUM(CAST(v."videoViewCount" AS FLOAT))  AS viewcount,
-                        SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS likecount,
-                        SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS commentcount,
-                        COUNT(*) AS videocount
-                FROM public."Video" v
-                LEFT JOIN public."Channel" c
-                ON v."channel_id" = c."id"
-                WHERE v."channel_id" = '{name_to_id[channel_name]}' AND v."hasPaidProductPlacement" = false
-                UNION ALL
-                SELECT
-                        SUM(CAST(v."videoViewCount" AS FLOAT)) AS viewcount,
-                        SUM(CAST(v."videoLikeCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS likecount,
-                        SUM(CAST(v."commentCount" AS FLOAT)/NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) AS commentcount,
-                        COUNT(*) AS videocount
-                FROM public."Video" v
-                LEFT JOIN public."Channel" c
-                ON v."channel_id" = c."id"
-                WHERE v."channel_id" = '{name_to_id[channel_name]}' AND v."hasPaidProductPlacement" = true
-        )
-        SELECT *
-        FROM compare
-        """
     try:
         df = pd.read_sql(query, db_engine)
         if df.empty:
@@ -218,24 +237,24 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
 
         # 영상 수
         video_count = int(df.iloc[0]["videocount"]) if df.iloc[0]["videocount"] != None else 0
-        ads_video_count = int(df.iloc[1]["videocount"]) if df.iloc[0]["videocount"] != None else 0
+        ads_video_count = int(df.iloc[0]["ad_videocount"]) if df.iloc[0]["ad_videocount"] != None else 0
         # 업데이트 주기
         period = convert_type(round(video_count / 3, 1))
         ads_period = convert_type(round(ads_video_count / 3, 1))
         # 평균 조회수
         view_count = int(df.iloc[0]["viewcount"]) // video_count if video_count != 0 else 0  # 전체 조회수
         ads_view_count = (
-            int(df.iloc[1]["viewcount"]) // ads_video_count if ads_video_count != 0 else 0
+            int(df.iloc[0]["ad_viewcount"]) // ads_video_count if ads_video_count != 0 else 0
         )  # 광고 영상 조회수
         # 평균 좋아요 비율
         like_ratio = df.iloc[0]["likecount"] / video_count * 100 if video_count != 0 else 0  # 전체 좋아요 합산
         ads_like_ratio = (
-            df.iloc[1]["likecount"] / ads_video_count * 100 if ads_video_count != 0 else 0
+            df.iloc[0]["ad_likecount"] / ads_video_count * 100 if ads_video_count != 0 else 0
         )  # 광고 영상 좋아요 합산
         # 평균 댓글 비율
         comment_ratio = df.iloc[0]["commentcount"] / video_count * 100 if video_count != 0 else 0  # 전체 댓글 합산
         ads_comment_ratio = (
-            df.iloc[1]["commentcount"] / ads_video_count * 100 if ads_video_count != 0 else 0
+            df.iloc[0]["ad_commentcount"] / ads_video_count * 100 if ads_video_count != 0 else 0
         )  # 광고 영상 좋아요 합산
 
     except Exception as e:
@@ -248,21 +267,20 @@ async def compare_ad_vs_normal(channel_name: str, db_engine=Depends(get_db_engin
             "평균 조회수": {
                 "일반 영상": f"{view_count:,}",
                 "광고 영상": f"{ads_view_count:,}",
-                "비교": f"{view_count-ads_view_count:,}",
+                "비교": f"{ads_view_count-view_count:,}",
             },
             "평균 좋아요 비율": {
                 "일반 영상": f"{round(like_ratio,2)}%",
                 "광고 영상": f"{round(ads_like_ratio,2)}%",
-                "비교": f"{round(like_ratio-ads_like_ratio, 2)}%",
+                "비교": f"{round(ads_like_ratio-like_ratio, 2)}%",
             },
             "평균 댓글 비율": {
                 "일반 영상": f"{round(comment_ratio,2)}%",
                 "광고 영상": f"{round(ads_comment_ratio,2)}%",
-                "비교": f"{round(comment_ratio-ads_comment_ratio,2)}%",
+                "비교": f"{round(ads_comment_ratio-comment_ratio,2)}%",
             },
         }
     ]
-
 
 # 광고 영상 성적
 @dashboard_router.get("/profitability/ad-performance/{channel_name}")
@@ -618,7 +636,7 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
             WHERE "channel_id" = '{name_to_id[channel_name]}'
         """
         ad_video_df = pd.read_sql(ad_video_query, db_engine)
-        ad_ratio = ad_video_df.iloc[0]["ad_count"] / ad_video_df.iloc[0]["total_count"]
+        ad_ratio = round(ad_video_df.iloc[0]["ad_count"] / ad_video_df.iloc[0]["total_count"] * 100, 1)
 
         return [
             {
@@ -626,7 +644,7 @@ async def get_targeting_strategy(channel_name: str, db_engine=Depends(get_db_eng
                 "키워드": ", ".join([k for k, v in list(top_keywords.items())[5:11] if len(k) < 15]),
                 "영상 업로드 시간": upload_time_list,
                 "영상 시청 시간": view_time_list,
-                "일반/광고 영상 비율": f"{convert_type(ad_ratio)}%",
+                "일반/광고 영상 비율": f"{ad_ratio}%",
             }
         ]
 
@@ -739,7 +757,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
             like_rate as "좋아요 참여율",
             ctr as "노출 클릭률"
         FROM video_metrics
-        ORDER BY view_count DESC
+        ORDER BY view_count DESC, apv DESC
         LIMIT 3
     """
 
@@ -765,7 +783,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
             like_rate as "좋아요 참여율",
             ctr as "노출 클릭률"
         FROM thumbnail_metrics
-        ORDER BY ctr DESC, apv DESC
+        ORDER BY ctr DESC
         LIMIT 3
     """
     try:  # 조회수 dailyChannel로 수정
@@ -815,43 +833,40 @@ async def get_channel_viewcount(channel_name: str, db_engine=Depends(get_db_engi
     # 현재 채널의 평균 조회수
     user_query = f"""
         SELECT
-            AVG(CAST("videoViewCount" AS BIGINT)) AS avg_views
+            COALESCE(AVG(CAST("videoViewCount" AS BIGINT)), 0) AS avg_views
         FROM public."Video"
-        WHERE "channel_id" = '{name_to_id[channel_name]}' AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days';
+        WHERE "channel_id" = '{name_to_id[channel_name]}' 
+        AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days';
     """
 
     # 경쟁 채널들의 조회수
     competitor_query = f"""
         SELECT 
-                v."channel_id", 
-                AVG(CAST(v."videoViewCount" AS BIGINT)) AS avg_views
+            COALESCE(AVG(CAST(v."videoViewCount" AS BIGINT)), 0) AS avg_views
         FROM public."Video" v
-        JOIN public."Channel" c ON v."channel_id"=c."id"
-        WHERE v."channel_id" IN (
-                SELECT "channel_id" FROM public."Video"
-                WHERE CAST(c."subscriberCount" AS BIGINT) BETWEEN CAST({subscriber_count} AS BIGINT) - 500000 AND CAST({subscriber_count} AS BIGINT) + 500000
-                        AND "channel_id" != '{name_to_id[channel_name]}' AND CAST("videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
-                )
-        GROUP BY v."channel_id"
+        JOIN public."Channel" c ON v."channel_id" = c."id"
+        WHERE CAST(c."subscriberCount" AS BIGINT) 
+            BETWEEN CAST({subscriber_count} AS BIGINT) - 500000 AND CAST({subscriber_count} AS BIGINT) + 500000
+        AND v."channel_id" != '{name_to_id[channel_name]}'
+        AND CAST(v."videoPublishedAt" AS DATE) >= CURRENT_DATE - INTERVAL '90 days'
     """
+    
     try:
         user_df = pd.read_sql(user_query, db_engine)
         competitor_df = pd.read_sql(competitor_query, db_engine)
-        if user_df.empty:
-            raise HTTPException(status_code=404, detail="user data not found.")
-        if competitor_df.empty:
-            raise HTTPException(status_code=404, detail="competitor data not found")
-        user_avg_view = user_df.iloc[0]["avg_views"]
-        competitor_avg_view = sum(competitor_df["avg_views"] / len(competitor_df["avg_views"]))
+        
+        user_avg_view = int(user_df.iloc[0]["avg_views"])
+        competitor_avg_view = int(competitor_df.iloc[0]["avg_views"])
+            
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        
     return [
         {
-            "내 채널 평균 조회수": int(user_avg_view) if user_avg_view != None else user_avg_view,
-            "경쟁 채널 평균 조회수": int(competitor_avg_view) if competitor_avg_view != None else competitor_avg_view,
+            "내 채널 평균 조회수": user_avg_view,
+            "경쟁 채널 평균 조회수": competitor_avg_view,
         }
     ]
-
 
 # 채널 성장 추세
 @dashboard_router.get("/performance/channel-growth/{channel_name}")
@@ -921,7 +936,13 @@ async def get_channel_feature(channel_name: str, db_engine=Depends(get_db_engine
             raise HTTPException(status_code=404, detail="Channel not found.")
         dates = df["month"].to_list()
         values = df["videocount"].to_list()
-        participation = round(sub_df.iloc[0]["avg_participation"], 1)
+        
+        # participation이 None인 경우 0으로 처리
+        participation = sub_df.iloc[0]["avg_participation"]
+        if participation is not None:
+            participation = round(participation, 1)
+        else:
+            participation = 0.0
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     return [{"x": dates, "영상 수": values, "참여도": f"{convert_type(participation)}%"}]
