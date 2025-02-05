@@ -284,7 +284,7 @@ async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
         metrics['comment_ratio'] = metrics['avg_comments_per_video'] / competitor_avg_comments if competitor_avg_comments > 0 else 0
 
         executor = CompletionExecutor()
-        return executor.execute('revenue', metrics)
+        return executor.execute('revenue', metrics, max_tokens=230)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -960,35 +960,166 @@ async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
         raise HTTPException(status_code=500, detail=str(e))
 
 ###################
-## SWOT 요약약 API ##
+## SWOT 요약 API ##
 ###################
 @chatbot_router.get("/summary/{channel_name}")
 async def analyze_channel_summary(channel_name: str, db_engine=Depends(get_db_engine)):
-    """
-    모든 분석 결과를 종합하여 3줄 요약을 반환합니다.
-    """
+    """CLOVA X를 이용한 채널 종합 분석"""
     try:
-        # 수익성 데이터 쿼리
-        revenue_query = f"""
-        SELECT 
-            "viewCount",
-            (SELECT AVG(CAST("viewCount" as float)) FROM "Channel") as avg_viewcount
-        FROM public."Channel"
-        WHERE "id" = '{name_to_id[channel_name]}'
+        # 채널 기본 정보 조회
+        channel_query = f"""
+            SELECT "id", "subscriberCount", "viewCount"
+            FROM "Channel"
+            WHERE "id" = '{name_to_id[channel_name]}'
         """
+        channel_df = pd.read_sql(channel_query, db_engine)
+        if channel_df.empty:
+            raise HTTPException(status_code=404, detail="Channel not found")
         
-        df = pd.read_sql(revenue_query, db_engine)
+        channel_id = int(channel_df.iloc[0]['id'])
+        subscriber_count = float(channel_df.iloc[0]['subscriberCount'])
 
-        viewcount = int(df.iloc[0]["viewCount"])
-        avg_viewcount = int(df.iloc[0]["avg_viewcount"])
+        # 1. 채널 성과 지표 조회
+        performance_query = f"""
+            WITH base_stats AS (
+                SELECT 
+                    c."id",
+                    AVG(CAST(v."videoViewCount" AS FLOAT)) as avg_video_views,
+                    COUNT(v."vId") as recent_uploads
+                FROM "Channel" c
+                LEFT JOIN "Video" v ON c."id" = v."channel_id"
+                    AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
+                GROUP BY c."id"
+            )
+            SELECT 
+                COALESCE(avg_video_views, 0) as avg_video_views,
+                COALESCE(recent_uploads, 0) as recent_uploads,
+                COALESCE(RANK() OVER (ORDER BY avg_video_views DESC), 1) as view_rank
+            FROM base_stats 
+            WHERE id = '{channel_id}'
+        """
 
-        view_income = int((viewcount * 2 + viewcount * 4.5) / 2)
+        # 2. 경쟁 채널 성과 지표
+        competitor_query = f"""
+            WITH video_metrics AS (
+                SELECT 
+                    c."id",
+                    AVG(CAST(v."videoViewCount" AS FLOAT)) as avg_views,
+                    COUNT(v."vId") as upload_count,
+                    AVG(CAST(v."videoLikeCount" AS FLOAT) / NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) * 100 as like_ratio,
+                    AVG(CAST(v."commentCount" AS FLOAT) / NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) * 100 as comment_ratio,
+                    AVG(CAST(v."videoShareCount" AS FLOAT) / NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) * 100 as share_ratio
+                FROM "Channel" c
+                LEFT JOIN "Video" v ON c."id" = v."channel_id"
+                    AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
+                WHERE CAST(c."subscriberCount" AS FLOAT) 
+                    BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
+                AND c."id" != '{channel_id}'
+                GROUP BY c."id"
+            )
+            SELECT 
+                COALESCE(AVG(avg_views), 0) as competitor_avg_view,
+                COALESCE(AVG(upload_count), 0) as competitor_avg_upload_count,
+                COALESCE(AVG(like_ratio), 0) as avg_like_ratio,
+                COALESCE(AVG(comment_ratio), 0) as avg_comment_ratio,
+                COALESCE(AVG(share_ratio), 0) as avg_share_ratio
+            FROM video_metrics
+            WHERE avg_views IS NOT NULL
+        """
 
+        # 3. 시청자 참여도 지표 조회
+        engagement_query = f"""
+            SELECT 
+                COALESCE(AVG(CAST("videoLikeCount" AS FLOAT) / NULLIF(CAST("videoViewCount" AS FLOAT), 0)) * 100, 0) as like_ratio,
+                COALESCE(AVG(CAST("commentCount" AS FLOAT) / NULLIF(CAST("videoViewCount" AS FLOAT), 0)) * 100, 0) as comment_ratio,
+                COALESCE(AVG(CAST("videoShareCount" AS FLOAT) / NULLIF(CAST("videoViewCount" AS FLOAT), 0)) * 100, 0) as share_ratio
+            FROM "Video"
+            WHERE "channel_id" = '{channel_id}'
+            AND CAST("videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
+        """
+
+        # 4. 수익성 지표 조회
+        revenue_query = f"""
+            WITH revenue_ranks AS (
+                SELECT 
+                    "id",
+                    CAST("viewCount" AS FLOAT) as view_count,
+                    CAST("Donation" AS FLOAT) as donation,
+                    RANK() OVER (ORDER BY CAST("viewCount" AS FLOAT) DESC) as view_rank,
+                    RANK() OVER (ORDER BY CAST("Donation" AS FLOAT) DESC) as donation_rank
+                FROM "Channel"
+                WHERE "viewCount" IS NOT NULL
+            ),
+            competitor_avg AS (
+                SELECT 
+                    AVG(CAST("viewCount" AS FLOAT)) as avg_views,
+                    AVG(CAST("Donation" AS FLOAT)) as avg_donation
+                FROM "Channel"
+                WHERE CAST("subscriberCount" AS FLOAT) 
+                    BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
+                AND "id" != '{channel_id}'
+            )
+            SELECT 
+                COALESCE(r.view_count, 0) as view_count,
+                COALESCE(r.donation, 0) as donation,
+                COALESCE(r.view_rank, 1) as view_rank,
+                COALESCE(r.donation_rank, 1) as donation_rank,
+                COALESCE(c.avg_views, 0) as avg_views,
+                COALESCE(c.avg_donation, 0) as avg_donation
+            FROM revenue_ranks r
+            CROSS JOIN competitor_avg c
+            WHERE r.id = '{channel_id}'
+        """
+
+        # 전체 채널 수 조회
+        total_channels_query = "SELECT COUNT(*) as total_channels FROM \"Channel\""
+        
+        # 쿼리 실행
+        performance_df = pd.read_sql(performance_query, db_engine)
+        competitor_df = pd.read_sql(competitor_query, db_engine)
+        engagement_df = pd.read_sql(engagement_query, db_engine)
+        revenue_df = pd.read_sql(revenue_query, db_engine)
+        total_channels_df = pd.read_sql(total_channels_query, db_engine)
+        
+        def safe_float(value, default=0.0):
+            try:
+                if pd.isna(value) or value is None:
+                    return default
+                return float(value)
+            except:
+                return default
+
+        def calculate_revenue(viewcount):
+            return int((viewcount * 2 + viewcount * 4.5) / 2)  # CPM 기반 수익 추정
+        
         metrics = {
-            'view_income': view_income
+            # 1. 채널 성과
+            "user_avg_view": int(safe_float(performance_df.iloc[0]["avg_video_views"]) if not performance_df.empty else 0),
+            "view_rank": int(safe_float(performance_df.iloc[0]["view_rank"]) if not performance_df.empty else 1),
+            "competitor_avg_view": int(safe_float(competitor_df.iloc[0]["competitor_avg_view"]) if not competitor_df.empty else 0),
+            "upload_count": int(safe_float(performance_df.iloc[0]["recent_uploads"]) if not performance_df.empty else 0),
+            "competitor_avg_upload_count": round(safe_float(competitor_df.iloc[0]["competitor_avg_upload_count"]) if not competitor_df.empty else 0, 1),
+            
+            # 2. 시청자 참여도
+            "like_ratio": safe_float(engagement_df.iloc[0]["like_ratio"] if not engagement_df.empty else 0),
+            "comment_ratio": safe_float(engagement_df.iloc[0]["comment_ratio"] if not engagement_df.empty else 0),
+            "share_ratio": safe_float(engagement_df.iloc[0]["share_ratio"] if not engagement_df.empty else 0),
+            "avg_like_ratio": safe_float(competitor_df.iloc[0]["avg_like_ratio"] if not competitor_df.empty else 0),
+            "avg_comment_ratio": safe_float(competitor_df.iloc[0]["avg_comment_ratio"] if not competitor_df.empty else 0),
+            "avg_share_ratio": safe_float(competitor_df.iloc[0]["avg_share_ratio"] if not competitor_df.empty else 0),
+            
+            # 3. 채널 수익성
+            "view_profit_user": calculate_revenue(safe_float(revenue_df.iloc[0]["view_count"] if not revenue_df.empty else 0)),
+            "view_profit_avg": calculate_revenue(safe_float(revenue_df.iloc[0]["avg_views"] if not revenue_df.empty else 0)),
+            "donation_profit_user": int(safe_float(revenue_df.iloc[0]["donation"] if not revenue_df.empty else 0)),
+            "donation_profit_avg": int(safe_float(revenue_df.iloc[0]["avg_donation"] if not revenue_df.empty else 0)),
+            "view_rank": int(safe_float(revenue_df.iloc[0]["view_rank"] if not revenue_df.empty else 1)),
+            "donation_rank": int(safe_float(revenue_df.iloc[0]["donation_rank"] if not revenue_df.empty else 1)),
+            
+            # 4. 기타
+            "total_channels": int(total_channels_df.iloc[0]["total_channels"] if not total_channels_df.empty else 0)
         }
-        
-        content = PROMPT_summary[1]['content'].format(**metrics)
+
         executor = CompletionExecutor()
         return executor.execute('summary', metrics)
 
