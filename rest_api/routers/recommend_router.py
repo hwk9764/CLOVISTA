@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
 import time
 import requests
+import json
 
 HYPERCLOVA_API_URL = "https://clovastudio.stream.ntruss.com"
 HYPERCLOVA_API_KEY = "Bearer nv-f5786fde571f424786ed0823986ca992h3P1"
@@ -98,7 +99,7 @@ def call_hyperclova(answers):
                 'messages': prompt,
                 'topP': 0.8,
                 'topK': 0,
-                'maxTokens': 2000,
+                'maxTokens': 1024,
                 'temperature': 0.35,
                 'repeatPenalty': 5.0,
                 'stopBefore': [],
@@ -107,14 +108,14 @@ def call_hyperclova(answers):
             }
     return completion_executor.execute(request_data)
     
-@recommendation_router.get("/recommendation")
-async def identity_recommendation(answers: list, db_engine=Depends(get_db_engine)):
+@recommendation_router.get("/")
+async def identity_recommendation(answers: json, db_engine=Depends(get_db_engine)):
     """
-    채널 정체성 컨설팅 HCX 출력 반환
+    채널 정체성 컨설팅, 콘텐츠 추천 HCX 답변 출력
     Parameters:
         7가지 질문에 대한 답변(관심사 및 취미, 선호 콘텐츠 유형, 목표 시청자층, 영상 제작 가능 시간, 장비 및 예산, 콘텐츠 아이디어, 장기적인 목표)
     Returns:
-        String
+        Json
     """
 
     # 코드 테스트할 때는 try, except 빼는 것을 추천
