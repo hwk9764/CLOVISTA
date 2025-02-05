@@ -946,3 +946,232 @@ async def get_channel_feature(channel_name: str, db_engine=Depends(get_db_engine
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     return [{"x": dates, "영상 수": values, "참여도": f"{convert_type(participation)}%"}]
+
+#임시
+@dashboard_router.get("/profitability/revenue-analysis/{channel_name}")
+async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
+    """CLOVA X를 이용한 채널 수익성 분석"""
+    def safe_convert(value, default=0):
+        if pd.isna(value) or value is None:
+            return default
+        try:
+            return int(float(value))
+        except (ValueError, TypeError):
+            return default
+    try:
+        channel_query = f"""
+            SELECT "id", "subscriberCount"
+            FROM "Channel"
+            WHERE "id" = '{name_to_id[channel_name]}'
+        """
+        channel_df = pd.read_sql(channel_query, db_engine)
+        if channel_df.empty:
+            raise HTTPException(status_code=404, detail="Channel not found")
+        
+        channel_id = int(channel_df.iloc[0]['id'])
+        subscriber_count = float(channel_df.iloc[0]['subscriberCount'])
+        
+        # total_channels_query = "SELECT COUNT(*) as count FROM \"Channel\""
+        # total_channels = pd.read_sql(total_channels_query, db_engine).iloc[0]['count']
+
+        revenue_query = f"""
+            WITH channel_metrics AS (
+                SELECT 
+                    c."id",
+                    CAST(c."viewCount" AS FLOAT) as view_count,
+                    CAST(c."Donation" AS FLOAT) as donation
+                FROM "Channel" c
+            ),
+            channel_ranks AS (
+                SELECT 
+                    cm.id,
+                    RANK() OVER (ORDER BY cm.view_count DESC) as view_rank,
+                    RANK() OVER (ORDER BY cm.donation DESC) as donation_rank
+                FROM channel_metrics cm
+            ),
+            avg_metrics AS (
+                SELECT 
+                    AVG(CAST(c."viewCount" AS FLOAT)) as avg_views,
+                    AVG(CAST(c."Donation" AS FLOAT)) as avg_donation,
+                    COUNT(*) as total_channels
+                FROM "Channel" c
+            )
+            SELECT 
+                cm.view_count,
+                cm.donation,
+                cr.view_rank,
+                cr.donation_rank,
+                am.avg_views,
+                am.avg_donation,
+                am.total_channels
+            FROM channel_metrics cm
+            JOIN channel_ranks cr ON cm.id = cr.id
+            CROSS JOIN avg_metrics am
+            WHERE cm.id = '{channel_id}'
+        """
+        
+        revenue_df = pd.read_sql(revenue_query, db_engine)
+
+        viewcount = safe_convert(revenue_df.iloc[0]["view_count"])
+        avg_viewcount = safe_convert(revenue_df.iloc[0]["avg_views"])
+        total_channels = safe_convert(revenue_df.iloc[0]["total_channels"])
+
+        view_profit_user = int((viewcount * 2 + viewcount * 4.5) / 2)
+        view_profit_avg = int((avg_viewcount * 2 + avg_viewcount * 4.5) / 2)
+
+        ad_query = f"""
+            WITH video_metrics AS (
+                SELECT
+                    COUNT(*) as ad_count,
+                    SUM(CAST("videoViewCount" AS FLOAT)) as total_views,
+                    SUM(CAST("videoLikeCount" AS FLOAT)) as total_likes,
+                    SUM(CAST("commentCount" AS FLOAT)) as total_comments
+                FROM "Video"
+                WHERE "channel_id" = '{channel_id}' 
+                AND "hasPaidProductPlacement" = true
+            ),
+            ad_ranks AS (
+                SELECT 
+                    v."channel_id",
+                    RANK() OVER (ORDER BY COUNT(*) DESC) as ad_count_rank
+                FROM "Video" v
+                WHERE v."hasPaidProductPlacement" = true
+                GROUP BY v."channel_id"
+            )
+            SELECT 
+                vm.*,
+                ar.ad_count_rank
+            FROM video_metrics vm
+            CROSS JOIN ad_ranks ar
+            WHERE ar.channel_id = '{channel_id}'
+        """
+        
+        ad_df = pd.read_sql(ad_query, db_engine)
+
+        comparison_query = f"""
+            WITH video_stats AS (
+                SELECT
+                    "hasPaidProductPlacement",
+                    COUNT(*) as video_count,
+                    COUNT(*) / 3.0 as monthly_rate,
+                    AVG(CAST("videoViewCount" AS FLOAT)) as avg_views,
+                    AVG(CAST("videoLikeCount" AS FLOAT) / NULLIF(CAST("videoViewCount" AS FLOAT), 0) * 100) as avg_like_ratio,
+                    AVG(CAST("commentCount" AS FLOAT) / NULLIF(CAST("videoViewCount" AS FLOAT), 0) * 100) as avg_comment_ratio
+                FROM "Video"
+                WHERE "channel_id" = '{channel_id}'
+                GROUP BY "hasPaidProductPlacement"
+            )
+            SELECT * FROM video_stats
+        """
+        
+        comparison_df = pd.read_sql(comparison_query, db_engine)
+
+        ad_ratio_query = f"""
+            WITH channel_ad_ratios AS (
+                SELECT 
+                    channel_id,
+                    COUNT(*) FILTER (WHERE "hasPaidProductPlacement" = true)::float / 
+                    NULLIF(COUNT(*), 0) * 100 as ad_ratio
+                FROM "Video"
+                GROUP BY channel_id
+            )
+            SELECT RANK() OVER (ORDER BY ad_ratio DESC) as ad_ratio_rank
+            FROM channel_ad_ratios
+            WHERE channel_id = '{channel_id}'
+        """
+        
+        ad_ratio_df = pd.read_sql(ad_ratio_query, db_engine)
+        
+        metrics = {
+            "view_profit_user": view_profit_user,
+            "view_profit_avg": view_profit_avg,
+            "donation_profit_user": safe_convert(revenue_df.iloc[0]['donation']),
+            "donation_profit_avg": safe_convert(revenue_df.iloc[0]['avg_donation']),
+            "view_rank": safe_convert(revenue_df.iloc[0]['view_rank']),
+            "donation_rank": safe_convert(revenue_df.iloc[0]['donation_rank']),
+            "total_channels": total_channels,
+            "ad_count": safe_convert(ad_df.iloc[0]['ad_count']) if not ad_df.empty else 0,
+            "ad_count_rank": safe_convert(ad_df.iloc[0]['ad_count_rank']) if not ad_df.empty else 0,
+            "total_views": safe_convert(ad_df.iloc[0]['total_views']) if not ad_df.empty else 0,
+            "total_likes": safe_convert(ad_df.iloc[0]['total_likes']) if not ad_df.empty else 0,
+            "total_comments": safe_convert(ad_df.iloc[0]['total_comments']) if not ad_df.empty else 0,
+            "normal_count": safe_convert(comparison_df[comparison_df['hasPaidProductPlacement']==False]['video_count'].iloc[0]) if not comparison_df[comparison_df['hasPaidProductPlacement']==False].empty else 0,
+            "ad_count": safe_convert(comparison_df[comparison_df['hasPaidProductPlacement']==True]['video_count'].iloc[0]) if not comparison_df[comparison_df['hasPaidProductPlacement']==True].empty else 0,
+            "normal_update_rate": round(float(comparison_df[comparison_df['hasPaidProductPlacement']==False]['monthly_rate'].iloc[0]), 1) if not comparison_df[comparison_df['hasPaidProductPlacement']==False].empty else 0.0,
+            "ad_update_rate": round(float(comparison_df[comparison_df['hasPaidProductPlacement']==True]['monthly_rate'].iloc[0]), 1) if not comparison_df[comparison_df['hasPaidProductPlacement']==True].empty else 0.0,
+            "normal_view_avg": safe_convert(comparison_df[comparison_df['hasPaidProductPlacement']==False]['avg_views'].iloc[0]) if not comparison_df[comparison_df['hasPaidProductPlacement']==False].empty else 0,
+            "ad_view_avg": safe_convert(comparison_df[comparison_df['hasPaidProductPlacement']==True]['avg_views'].iloc[0]) if not comparison_df[comparison_df['hasPaidProductPlacement']==True].empty else 0,
+            "normal_like_ratio": float(comparison_df[comparison_df['hasPaidProductPlacement']==False]['avg_like_ratio'].iloc[0]) if not comparison_df[comparison_df['hasPaidProductPlacement']==False].empty else 0.0,
+            "ad_like_ratio": float(comparison_df[comparison_df['hasPaidProductPlacement']==True]['avg_like_ratio'].iloc[0]) if not comparison_df[comparison_df['hasPaidProductPlacement']==True].empty else 0.0,
+            "normal_comment_ratio": float(comparison_df[comparison_df['hasPaidProductPlacement']==False]['avg_comment_ratio'].iloc[0]) if not comparison_df[comparison_df['hasPaidProductPlacement']==False].empty else 0.0,
+            "ad_comment_ratio": float(comparison_df[comparison_df['hasPaidProductPlacement']==True]['avg_comment_ratio'].iloc[0]) if not comparison_df[comparison_df['hasPaidProductPlacement']==True].empty else 0.0,
+            "ad_ratio_rank": safe_convert(ad_ratio_df.iloc[0]['ad_ratio_rank']) if not ad_ratio_df.empty else 0
+        }
+
+        total_videos = metrics['normal_count'] + metrics['ad_count']
+        metrics['ad_ratio'] = (metrics['ad_count'] / total_videos * 100) if total_videos > 0 else 0
+        metrics['view_comparison_ratio'] = metrics['ad_view_avg'] / metrics['normal_view_avg'] if metrics['normal_view_avg'] > 0 else 0
+        metrics['like_comparison_ratio'] = metrics['ad_like_ratio'] / metrics['normal_like_ratio'] if metrics['normal_like_ratio'] > 0 else 0
+        metrics['comment_comparison_ratio'] = metrics['ad_comment_ratio'] / metrics['normal_comment_ratio'] if metrics['normal_comment_ratio'] > 0 else 0
+
+        competitor_query = f"""
+            WITH competitor_metrics AS (
+                SELECT 
+                    AVG(CAST("videoViewCount" AS FLOAT)) as avg_views,
+                    AVG(CAST("videoLikeCount" AS FLOAT)) as avg_likes,
+                    AVG(CAST("commentCount" AS FLOAT)) as avg_comments
+                FROM "Video" v
+                JOIN "Channel" c ON v.channel_id = c.id
+                WHERE v."hasPaidProductPlacement" = true
+                AND CAST(c."subscriberCount" AS FLOAT) 
+                BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
+                AND v.channel_id != '{channel_id}'
+            )
+            SELECT * FROM competitor_metrics
+        """
+        competitor_df = pd.read_sql(competitor_query, db_engine)
+
+        metrics['avg_views_per_video'] = metrics['total_views'] / metrics['ad_count'] if metrics['ad_count'] > 0 else 0
+        metrics['avg_likes_per_video'] = metrics['total_likes'] / metrics['ad_count'] if metrics['ad_count'] > 0 else 0
+        metrics['avg_comments_per_video'] = metrics['total_comments'] / metrics['ad_count'] if metrics['ad_count'] > 0 else 0
+
+        competitor_avg_views = float(competitor_df.iloc[0]['avg_views']) if not competitor_df.empty and not pd.isna(competitor_df.iloc[0]['avg_views']) else 1
+        competitor_avg_likes = float(competitor_df.iloc[0]['avg_likes']) if not competitor_df.empty and not pd.isna(competitor_df.iloc[0]['avg_likes']) else 1
+        competitor_avg_comments = float(competitor_df.iloc[0]['avg_comments']) if not competitor_df.empty and not pd.isna(competitor_df.iloc[0]['avg_comments']) else 1
+
+        metrics['view_ratio'] = metrics['avg_views_per_video'] / competitor_avg_views if competitor_avg_views > 0 else 0
+        metrics['like_ratio'] = metrics['avg_likes_per_video'] / competitor_avg_likes if competitor_avg_likes > 0 else 0
+        metrics['comment_ratio'] = metrics['avg_comments_per_video'] / competitor_avg_comments if competitor_avg_comments > 0 else 0
+
+        # executor = CompletionExecutor()
+        # return executor.execute('revenue', metrics)
+        return {
+            "수익 현황": {
+                "조회수 수입_유저": f"{metrics['view_profit_user']:,}원",
+                "조회수 수입_평균": f"{metrics['view_profit_avg']:,}원",
+                "후원 수입_유저": f"{metrics['donation_profit_user']:,}원",
+                "후원 수입_평균": f"{metrics['donation_profit_avg']:,}원",
+                "조회수 순위": f"{metrics['view_rank']}위 / {metrics['total_channels']}개",
+                "후원 순위": f"{metrics['donation_rank']}위 / {metrics['total_channels']}개"
+            },
+            "광고 영상 현황": {
+                "광고 영상 수": f"{metrics['ad_count']}개",
+                "광고 영상 순위": f"{metrics['ad_count_rank']}위",
+                "누적 조회수": f"{metrics['total_views']:,}회",
+                "누적 좋아요": f"{metrics['total_likes']:,}개",
+                "누적 댓글": f"{metrics['total_comments']:,}개",
+                "영상당 평균 조회수": f"{metrics['avg_views_per_video']:,}회",
+                "영상당 평균 좋아요": f"{metrics['avg_likes_per_video']:,}개",
+                "영상당 평균 댓글": f"{metrics['avg_comments_per_video']:,}개"
+            },
+            "광고 vs 일반 영상 비교": {
+                "일반 영상 수": f"{metrics['normal_count']}개",
+                "광고 영상 비율": f"{metrics['ad_ratio']:.1f}%",
+                "조회수 비교": f"일반 영상 {metrics['normal_view_avg']:,}회 vs 광고 영상 {metrics['ad_view_avg']:,}회",
+                "좋아요율 비교": f"일반 영상 {metrics['normal_like_ratio']:.2f}% vs 광고 영상 {metrics['ad_like_ratio']:.2f}%",
+                "댓글율 비교": f"일반 영상 {metrics['normal_comment_ratio']:.2f}% vs 광고 영상 {metrics['ad_comment_ratio']:.2f}%"
+            }
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
