@@ -70,7 +70,7 @@ completion_executor = CompletionExecutor(
 @sensitive_router.get("/result/{user_id}")
 async def result(user_id: str):
     # 파일 확인
-    user_id = "test"
+    #user_id = "test"
     upload_dir = f"./uploads/{user_id}"
     files = os.listdir(upload_dir)
     title = [x.split(".")[0] for x in files]
