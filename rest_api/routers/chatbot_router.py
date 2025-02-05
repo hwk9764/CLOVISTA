@@ -856,7 +856,7 @@ async def analyze_upload_pattern(channel_name: str, db_engine=Depends(get_db_eng
         }
 
         executor = CompletionExecutor()
-        return executor.execute('upload_pattern', metrics)
+        return executor.execute('upload_pattern', metrics, max_tokens=150)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -866,12 +866,13 @@ async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
     try:
         channel_info_query = f"""
             SELECT CAST("subscriberCount" AS INTEGER) as "subscriberCount"
-            FROM public."Channel"
+            FROM public."Channel" 
             WHERE "id" = '{name_to_id[channel_name]}'
         """
         channel_info = pd.read_sql(channel_info_query, db_engine)
         subscriber_count = channel_info.iloc[0]["subscriberCount"]
 
+        # 조회수, 구독자 참여율 등 통계
         view_stats_query = f"""
             WITH channel_views AS (
                 SELECT 
@@ -898,71 +899,57 @@ async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
             WHERE channel_id = '{name_to_id[channel_name]}'
         """
 
+        # 경쟁 채널 통계
         competitor_query = f"""
-            SELECT AVG(avg_views) as competitor_avg_view
-            FROM (
+            WITH competitor_stats AS (
                 SELECT 
                     v.channel_id,
-                    AVG(CAST(v."videoViewCount" AS FLOAT)) as avg_views
+                    c."subscriberCount",
+                    AVG(CAST(v."videoViewCount" AS FLOAT)) as avg_views,
+                    AVG(CAST(v."subscriberViewedRatio" AS FLOAT)) as view_sub_ratio,
+                    COUNT(*) as upload_count
                 FROM public."Video" v
                 JOIN public."Channel" c ON v.channel_id = c.id
                 WHERE CAST(c."subscriberCount" AS INTEGER)
                     BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
                 AND v.channel_id != '{name_to_id[channel_name]}'
                 AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
-                GROUP BY v.channel_id
-            ) competitor_views
+                GROUP BY v.channel_id, c."subscriberCount"
+            )
+            SELECT 
+                AVG(avg_views) as competitor_avg_view,
+                AVG(view_sub_ratio) as competitor_view_sub_ratio,
+                AVG(upload_count) as competitor_avg_upload_count
+            FROM competitor_stats
         """
 
+        # 90일 간 업로드 수 통계
         upload_query = f"""
-            SELECT CAST(COUNT(*) AS FLOAT) / 3.0 as monthly_upload_count
+            SELECT COUNT(*) as upload_count
             FROM public."Video"
             WHERE channel_id = '{name_to_id[channel_name]}'
             AND CAST("videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
         """
 
-        engagement_query = f"""
-            WITH channel_engagement AS (
-                SELECT 
-                    channel_id,
-                    CAST(AVG(CAST("subscriberViewedRatio" AS FLOAT)) AS FLOAT) as engagement_rate
-                FROM public."Video"
-                WHERE CAST("videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
-                GROUP BY channel_id
-            )
-            SELECT 
-                CAST((
-                    SELECT engagement_rate 
-                    FROM channel_engagement 
-                    WHERE channel_id = '{name_to_id[channel_name]}'
-                ) AS FLOAT) as engagement_rate,
-                (
-                    SELECT COUNT(*) + 1
-                    FROM channel_engagement
-                    WHERE CAST(engagement_rate AS FLOAT) > CAST((
-                        SELECT engagement_rate
-                        FROM channel_engagement
-                        WHERE channel_id = '{name_to_id[channel_name]}'
-                    ) AS FLOAT)
-                ) as engagement_rank
-            """
-
+        # 전체 채널 수 조회
         total_channels_query = "SELECT COUNT(*) as total_channels FROM public.\"Channel\""
 
+        # 데이터프레임 생성
         view_stats_df = pd.read_sql(view_stats_query, db_engine)
         competitor_df = pd.read_sql(competitor_query, db_engine)
         upload_df = pd.read_sql(upload_query, db_engine)
-        engagement_df = pd.read_sql(engagement_query, db_engine)
         total_channels_df = pd.read_sql(total_channels_query, db_engine)
 
+        # 메트릭스 계산
         metrics = {
             "user_avg_view": float(view_stats_df.iloc[0]["avg_views"]) if not view_stats_df.empty and view_stats_df.iloc[0]["avg_views"] is not None else 0,
             "view_rank": int(view_stats_df.iloc[0]["view_rank"]) if not view_stats_df.empty and view_stats_df.iloc[0]["view_rank"] is not None else 0,
             "competitor_avg_view": float(competitor_df.iloc[0]["competitor_avg_view"]) if not competitor_df.empty and competitor_df.iloc[0]["competitor_avg_view"] is not None else 0,
-            "view_subscriber_ratio": float(view_stats_df.iloc[0]["view_sub_ratio"]) if not view_stats_df.empty and view_stats_df.iloc[0]["view_sub_ratio"] is not None else 0,  # subscriberViewedRatio 추가
-            "monthly_upload_count": round(float(upload_df.iloc[0]["monthly_upload_count"]) if not upload_df.empty and upload_df.iloc[0]["monthly_upload_count"] is not None else 0, 1),
-            "engagement_rate": round(float(engagement_df.iloc[0]["engagement_rate"]) if not engagement_df.empty and engagement_df.iloc[0]["engagement_rate"] is not None else 0, 1),
-            "engagement_rank": int(engagement_df.iloc[0]["engagement_rank"]) if not engagement_df.empty and engagement_df.iloc[0]["engagement_rank"] is not None else 0,
+            "competitor_view_sub_ratio": float(competitor_df.iloc[0]["competitor_view_sub_ratio"]) if not competitor_df.empty and competitor_df.iloc[0]["competitor_view_sub_ratio"] is not None else 0,
+            "view_subscriber_ratio": float(view_stats_df.iloc[0]["view_sub_ratio"]) if not view_stats_df.empty and view_stats_df.iloc[0]["view_sub_ratio"] is not None else 0,
+            "view_sub_ratio_multiplier": round(float(view_stats_df.iloc[0]["view_sub_ratio"]) / float(competitor_df.iloc[0]["competitor_view_sub_ratio"]), 1) if not competitor_df.empty and competitor_df.iloc[0]["competitor_view_sub_ratio"] is not None and float(competitor_df.iloc[0]["competitor_view_sub_ratio"]) != 0 else 0,
+            "upload_count": int(upload_df.iloc[0]["upload_count"]) if not upload_df.empty and upload_df.iloc[0]["upload_count"] is not None else 0,
+            "competitor_avg_upload_count": round(float(competitor_df.iloc[0]["competitor_avg_upload_count"]) if not competitor_df.empty and competitor_df.iloc[0]["competitor_avg_upload_count"] is not None else 0, 1),
             "total_channels": int(total_channels_df.iloc[0]["total_channels"]) if not total_channels_df.empty and total_channels_df.iloc[0]["total_channels"] is not None else 0
         }
 
