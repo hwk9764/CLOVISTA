@@ -8,7 +8,8 @@ const Sense = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
-  const [showPopup, setShowPopup] = useState(true);
+  const [showPopup, setShowPopup] = useState(true); // popup trend
+  const [isUploaded,setIsUploaded]=useState(false);
 
   const navigate = useNavigate();
 
@@ -21,6 +22,7 @@ const Sense = () => {
     const uploadedFile = e.target.files[0];
     if (uploadedFile) {
       setFile(uploadedFile); // file 상태 업데이트
+      setIsUploaded(true);
     }
   };
 
@@ -93,11 +95,12 @@ const Sense = () => {
 
   return (
     <div className="sense-container">
-      {showPopup && (
+      {/*pop up page*/}
+      {/* {showPopup && (
         <PopupGuide
           onClose={closePopup}
         />
-      )}
+      )} */}
       <h2>영상 카테고리를 선택하고 영상을 업로드하세요!</h2>
 
       {/* Drag-and-Drop File Upload Section */}
@@ -107,17 +110,22 @@ const Sense = () => {
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <p>눈금 아래로 영상을 드래그 앤 드롭하거나 버튼을 클릭하세요.</p>
-        <input
-          type="file"
-          accept="video/mp4, video/mov, video/wmv, video/avi"
-          onChange={handleFileUpload}
-          id="file-input"
-        />
-        <label htmlFor="file-input" className="file-input-label">
-          파일 선택
-        </label>
-        {file && <p className="file-name">선택된 파일: {file.name}</p>}
+        {isUploaded ? (
+          <p className="upload-success">✅ {file.name} <br/> 업로드 완료!</p>
+        ) : (
+          <>
+            <p>눈금 아래로 영상을 드래그 앤 드롭하거나 버튼을 클릭하세요.</p>
+            <input
+              type="file"
+              accept="video/mp4, video/mov, video/wmv, video/avi"
+              onChange={handleFileUpload}
+              id="file-input"
+            />
+            <label htmlFor="file-input" className="file-input-label">
+              파일 선택
+            </label>
+          </>
+        )}
       </div>
 
       {/* Dropdown for Video Category */}
