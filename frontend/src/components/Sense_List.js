@@ -14,6 +14,7 @@ const SenseList = () => {
       try {
         const userData = JSON.parse(localStorage.getItem("user") || "{}");
         const userID = encodeURIComponent(userData.name || "unknown");
+        console.log(`http://10.28.224.177:30635/sensitive/result/${userID}`);
         const response = await axios.get(
           `http://10.28.224.177:30635/sensitive/result/${userID}`,
           { headers: { accept: "application/json" } }
