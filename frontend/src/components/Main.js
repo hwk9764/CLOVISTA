@@ -18,6 +18,7 @@ const MainPage = () => {
         <ServiceCard
           title="맞춤형 채널 정책성 진단받아보기"
           description="유튜브 채널 운영을 위한 정책적 방향을 진단받아보세요."
+          link='/main/identity'
         />
         {hasYouTubeChannel && (
           <ServiceCard

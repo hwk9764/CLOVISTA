@@ -13,6 +13,8 @@ import Sense_Result from './components/Sense_Result';
 import Swot_Performance from './components/Swot_Performance';
 import Swot_Engagement from './components/Swot_Engagement'
 import Swot_Revenue from './components/Swot_Revenue'
+import Identity from './components/Identity'
+import Identity_Chatbot from './components/SurveyChatbot'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -31,6 +33,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/main/Swot/Performance" element={<Swot_Performance />} />
         <Route path="/main/Swot/Engagement" element={<Swot_Engagement />} />
         <Route path="/main/Swot/Revenue" element={<Swot_Revenue />} />
+        <Route path="/main/Identity" element={<Identity />} />
+        <Route path="/main/Identity/Survey" element={<Identity_Chatbot />} />
       </Routes>
     </Router>
   </GoogleOAuthProvider>
