@@ -1,71 +1,257 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './Sense_Result.css';
+import Loader from './Loader'
 
-const Sense_result = () => {
-  const { id } = useParams(); // URL에서 전달받은 id
-  const mockResults = {
-    2: {
-      title: '그렇게 구멍이 나나 봅니다 (쇼츠편집)',
-      content: `
-        해당 영상 대본에는 논란이 될 만한 내용이 없는 것 같습니다. 영상 속에서는 경제 관련 주제에 대해 이야기하고 있으며, 
-        대화 형식으로 이루어져 있습니다. 또한 유튜버 수가급의 단순 입장가치 평가 주제, 부동산 등 다양한 경제 개념과 주제 
-        분배에 대해 논리적으로 다루고 있습니다. 이러한 주제는 일반적으로 경제 관점에서 다루어지는 것으로, 특별한 논란의 여지가 없어 보입니다.
-      `,
-      notes: [
-        '(01:05) 정보를 잘 찾는 방법을 알려 드리는 것처럼, 추가되는 정보보다 정보 찾는 방법이나 투자에 대한 시선을 전달하는 방식으로 요점을 잡는 것이 좋습니다.',
-        '(04:19) 경제 주제와 사람들의 대화를 다루는 영상이기 때문에 새롭게 다룰 정보를 찾기 쉽지 않지만, 이번 사례에서는 큰 문제가 없어 보입니다.',
-      ],
-      score: 50,
-    },
-  };
 
-  const result = mockResults[id];
+const SenseResult = () => {
+  const { title } = useParams(); // URL에서 전달받은 제목
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showExplanation, setShowExplanation] = useState({
+    prob: false,
+    danger: false,
+    scope: false,
+  });
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    const fetchResult = async () => {
+      try {
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const userID = encodeURIComponent(userData.name || "unknown");
+
+        const response = await axios.get(
+          `http://10.28.224.177:30635/sensitive/result/${userID}`,
+          { headers: { accept: "application/json" } }
+        );
+
+        const matchedResult = response.data.find(
+          (item) => item.title === decodeURIComponent(title) && item.status === 1
+        );
+
+        if (matchedResult) {
+          setResult(matchedResult);
+        } else {
+          setResult(null); // 해당 제목의 결과가 없을 경우
+        }
+      } catch (error) {
+        console.error("❌ 결과 데이터를 불러오는 중 오류 발생:", error);
+        setResult(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchResult();
+  }, [title]);
+
+  // 점수를 각도로 변환 (낮음/중간/높음)
   const calculateRotation = (score) => {
-    // 점수를 각도로 변환 (0~100 -> -90도 ~ 90도)
-    return (score / 100) * 180 - 90; // 0점 -> -90도, 100점 -> 90도
+    const scoreMapping = { "낮음": -60, "중간": 0, "높음": 60 };
+    return scoreMapping[score] || 0;
   };
+  const toggleExplanation = (type) => {
+    setShowExplanation((prev) => ({
+      ...prev,
+      [type]: !prev[type], // 해당 타입의 설명을 토글
+    }));
+  };
+
+  if (loading) {
+    return <Loader message="데이터를 불러오는 중..." />;
+  }
 
   return (
-    <div className="result-container">
+    <div className="sense-result-container">
+      
       {result ? (
         <>
-          <h2>{result.title}</h2>
-          <div className="result-content">
-            <p>{result.content}</p>
-          </div>
-          <div className="result-details">
-            <ul>
-              {result.notes.map((note, index) => (
-                <li key={index}>{note}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="result-score">
-            <div className="gauge">
-              {/* 배경 색상 */}
-              <div className="gauge-background"></div>
-              {/* 화살표 */}
-              <div
-                className="gauge-arrow"
-                style={{
-                  transform: `rotate(${calculateRotation(result.score)}deg)`,
-                }}
-              ></div>
-              {/* 중앙 텍스트 */}
-              <div className="gauge-cover">
-                <span className="score-text">{result.score}점</span>
-                <span className="label-text">위험도 점수</span>
+          {/* 상단 컨테이너 */}
+          <div className="sense-result-header">
+            <div className="sense-title-section">
+              <h2>{result.title}</h2>
+              <div className="sense-selected-text">
+                {result.selected_text?.split("\n").map((line, index) => (
+                  <p key={index}>{line}</p>
+                ))}
+                {/* 엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트
+                엄청 긴 텍스트 테스트 */}
               </div>
+            </div>
+            <div className='sense-similar-case-card'>
+              <h2>유사한 과거<br />논란 사례 분석</h2>
+              <img src={'/similar_case_icon.png'} alt="similar_case_pic" className='sense-similar-case-icon' />
+              <p>스크립트를 분석하여 식별된 잠재 논란 요소 중, 과거에 일었던 논란과 유사할 수 있는 사례를 살펴봅니다.</p>
+              <button
+                className="sense-similar-cases-button"
+                onClick={() => navigate('/main/similar-cases')}
+              >
+                보러 가기
+              </button>
+            </div>
+
+          </div>
+
+          {/* 하단 컨테이너 */}
+          <div className="sense-result-scores">
+            {/* Prob Score */}
+            <div className="sense-score-wrapper">
+              <h2>발생 가능성</h2>
+              <div className="sense-exclamation-wrapper">
+                <img
+                  src="/exclamation.png"
+                  alt="exclamation"
+                  className="sense-exclamation"
+                />
+                <div className="sense-explanation-hover">
+                  이 지표는 텍스트가 논란으로 발전할 가능성을 측정합니다.
+                </div>
+              </div>
+              <div className="sense-gauge">
+                <div className="sense-gauge-background"></div>
+                <div
+                  className="sense-gauge-arrow"
+                  style={{
+                    transform: `rotate(${calculateRotation(result.prob_score)}deg)`,
+                  }}
+                ></div>
+                <div className="sense-gauge-cover">
+                  <span>{result.prob_score}</span>
+                </div>
+              </div>
+              <p className="sense-score-text">{result.prob_text}</p>
+            </div>
+
+
+            {/* Danger Score */}
+            <div className="sense-score-wrapper">
+              <h2>심각성</h2>
+              <div className="sense-exclamation-wrapper">
+                <img
+                  src="/exclamation.png"
+                  alt="exclamation"
+                  className="sense-exclamation"
+                />
+                <div className="sense-explanation-hover">
+                  논란 발생 시 사회적,경제적, 법적 영향의 심각성을 측정합니다.
+                </div>
+              </div>
+              <div className="sense-gauge">
+                <div className='sense-gauge-background'></div>
+                <div
+                  className="sense-gauge-arrow"
+                  style={{
+                    transform: `rotate(${calculateRotation(result.danger_score)}deg)`,
+                  }}
+                ></div>
+                <div className="sense-gauge-cover">
+                  <span>{result.danger_score}</span>
+                </div>
+              </div>
+              <p className="sense-score-text">{result.danger_text}</p>
+            </div>
+
+            {/* Scope Score */}
+            <div className="sense-score-wrapper">
+              <h2>영향 범위</h2>
+              <div className="sense-exclamation-wrapper">
+                <img
+                  src="/exclamation.png"
+                  alt="exclamation"
+                  className="sense-exclamation"
+                />
+                <div className="sense-explanation-hover">
+                  논란이 영향을 미칠 대상과 <br/>범위를 측정합니다.
+                </div>
+              </div>
+              <div className="sense-gauge">
+                <div className='sense-gauge-background'></div>
+                <div
+                  className="sense-gauge-arrow"
+                  style={{
+                    transform: `rotate(${calculateRotation(result.scope_score)}deg)`,
+                  }}
+                ></div>
+                <div className="sense-gauge-cover">
+                  <span>{result.scope_score}</span>
+                </div>
+              </div>
+              <p className="sense-score-text">{result.scope_text}</p>
             </div>
           </div>
         </>
       ) : (
-        <p>결과를 찾을 수 없습니다.</p>
+        <p>❌ 해당 영상에 대한 분석 결과를 찾을 수 없습니다.</p>
       )}
     </div>
   );
 };
 
-export default Sense_result;
+export default SenseResult;

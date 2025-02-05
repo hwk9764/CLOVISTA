@@ -99,11 +99,13 @@
 
 .ad-section {
   width: 48%;
-  /* 양쪽 섹션의 동일한 너비 */
   background-color: #fff;
   padding: 15px;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .ad-section h4 {
@@ -111,20 +113,24 @@
   font-weight: bold;
   margin-bottom: 30px;
   margin-top: 10px;
+  text-align: center;
 }
-
+.ad-thumbnail-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
 .ad-thumbnail {
   width: 200px;
-  height: auto;
-  margin-top: -20px;
   border-radius: 10px;
-  object-fit: cover;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  object-fit: cover; /* 이미지 비율 유지 */
+  display: block; /* block 요소로 변경 */
+  margin: 0 auto; /* 중앙 정렬 */
 }
 
 .ad-content {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   /* gap: 15px; */
 }
 
@@ -214,5 +220,5 @@
   color: #333;
   text-align: left;
   margin-bottom: 30px; /* 분석 박스의 바닥 여백 추가 */
-  height: 80%;
+  height: auto;
 }

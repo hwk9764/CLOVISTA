@@ -88,7 +88,6 @@ const createOverlapChartData = (uploadTimes, viewTimes) => {
 };
 
 const chartOptions = {
-  responsive: false,
   plugins: {
     tooltip: {
       callbacks: {
@@ -109,8 +108,11 @@ const chartOptions = {
 const SwotEngagement = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+
   const userData = JSON.parse(localStorage.getItem("user")); // 문자열을 객체로 변환
   const channelName = userData?.surveyResponses?.channelName;
+  const target_gender = userData?.surveyResponses?.targetGender;
+  const target_age = userData?.surveyResponses?.targetAge;
 
   // 대시보드 변수
   const [channelEngagement, setChannelEngagement] = useState(null);
@@ -206,6 +208,7 @@ const SwotEngagement = () => {
             },
           ],
         });
+
       }
       catch (error) {
         console.error("Error fetching data:", error);
@@ -219,7 +222,7 @@ const SwotEngagement = () => {
   }, []);
 
   if (loading) {
-    return <Loader type="spin" color="#123abc" message="데이터를 불러오는 중..." />;
+    return <Loader  message="데이터를 불러오는 중..." />;
   }
 
   const calculateRotation = (score, min, max) => {
@@ -433,7 +436,7 @@ const SwotEngagement = () => {
           <div className="doughnut-chart">
             <h3>일반/광고 영상 비율</h3>
             {doughnutData && (
-              <Doughnut data={doughnutData} options={{ plugins: {legend: {display:false}} ,responsive: false, }} style={{ position: 'relative', height: '300px', width: '300px' }}
+              <Doughnut data={doughnutData} options={{ plugins: { legend: { display: false } } }}
               />
             )}
             <div className='doughnut-label'>
@@ -451,7 +454,7 @@ const SwotEngagement = () => {
           <div className='doughnut-chart'>
             <h3>업로드 시간 및 시청 시간 도넛 차트</h3>
             {overlapChartData ? (
-              <Doughnut data={overlapChartData} options={chartOptions} style={{ position: 'relative', height: '300px', width: '300px' }} />
+              <Doughnut data={overlapChartData} options={chartOptions} />
             ) : (
               <p>데이터를 불러오는 중...</p>
             )}
@@ -470,6 +473,18 @@ const SwotEngagement = () => {
               </div>
             </div>
           </div>
+
+          {/* 타겟 연령층과 성별 */}
+          <div className='target_gender_section'>
+            <div className='target-container'>
+              <img
+                src={target_gender === '남성' ? '/man.png' : '/woman.png'}
+                alt={target_gender}
+                className='target-image'
+              />
+              <span className='target-age'>{target_age}대</span>
+            </div>
+          </div>
         </div>
 
         {/*시청자 타겟팅에 대한 하이퍼 클로바 응답*/}
@@ -477,6 +492,7 @@ const SwotEngagement = () => {
           <h3>시청자 타겟팅에 대한 분석결과</h3>
           {analysisTarget ? (<div className='analysis-box'>{analysisTarget}</div>) : (<p>Loading...</p>)}
         </div>
+
       </div >
 
 
