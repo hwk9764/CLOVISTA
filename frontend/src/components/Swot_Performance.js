@@ -199,7 +199,7 @@ const Performance = () => {
   }, [channelName]);
 
   if (loading) {
-    return <Loader type="spin" color="#123abc" message="데이터를 불러오는 중..." />;
+    return <Loader message="데이터를 불러오는 중..." />;
   }
 
   return (
@@ -343,12 +343,12 @@ const Performance = () => {
             )}
           </div>
           <div className="analysis-wrapper">
-          {popular_thumbnail_analysis ? (
-            <div className="analysis-box">{popular_thumbnail_analysis}</div>
-          ) : (
-            <p>Loading...</p>
-          )}
-        </div>
+            {popular_thumbnail_analysis ? (
+              <div className="analysis-box">{popular_thumbnail_analysis}</div>
+            ) : (
+              <p>Loading...</p>
+            )}
+          </div>
         </div>
 
 
@@ -439,28 +439,30 @@ const Performance = () => {
         {activationData && (
           <div className="graph-section">
             <h3>유사 채널 대비 활성도</h3>
-            <Doughnut
-              data={activationData}
-              options={{
-                responsive: false,
-                plugins: {
-                  legend: {
-                    display: false
-                  },
-                  tooltip: {
-                    callbacks: {
-                      label: function (context) {
-                        const label = context.label || '';
-                        const value = context.raw || 0;
-                        return `${label}: ${(value * 100).toFixed(2)}%`;
+            <div className="activation_graph">
+              <Doughnut
+                data={activationData}
+                options={{
+                  plugins: {
+                    legend: {
+                      display: false
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function (context) {
+                          const label = context.label || '';
+                          const value = context.raw || 0;
+                          return `${label}: ${(value * 100).toFixed(2)}%`;
+                        },
                       },
                     },
                   },
-                },
-              }}
-              style={{ position: 'relative', height: '300px', width: '300px' }}
+                }}
+                style={{ position: 'relative', height: '300px', width: '300px' }}
 
-            />
+              />
+            </div>
+
             <div className="analysis-wrapper">
               {activation_analysis ? (
                 <div className="analysis-box">{activation_analysis}</div>
@@ -470,6 +472,7 @@ const Performance = () => {
             </div>
           </div>
         )}
+
 
       </div>
     </div>

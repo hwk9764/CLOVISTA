@@ -104,7 +104,7 @@ const SwotRevenue = () => {
   }, [channelName]);
 
   if (loading) {
-    return <Loader type="spin" color="#123abc" message="데이터를 불러오는 중..." />;
+    return <Loader message="데이터를 불러오는 중..." />;
   }
 
   return (

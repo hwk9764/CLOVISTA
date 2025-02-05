@@ -1,36 +1,68 @@
-import React, { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import PopupGuide from "./PopupGuide";
+import axios from 'axios';
 import './Sense.css';
 
 const Sense = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0); // 업로드 진행 상태
-  const navigate=useNavigate();
+  const [showPopup, setShowPopup] = useState(true);
 
+  const navigate = useNavigate();
 
-  const simulateFileUpload = () => {
-    // 파일 업로드를 시뮬레이션 (예: API 호출 대체)
-    let progress = 0;
-    const interval = setInterval(() => {
-      progress += 10;
-      setUploadProgress(progress);
-      if (progress >= 100) {
-        clearInterval(interval);
-      }
-    }, 200);
-  };
+  // localStorage에서 user 정보 가져오기
+  const userData = JSON.parse(localStorage.getItem("user") || "{}");
+  const userID = encodeURIComponent(userData.name || "unknown"); // name을 id로 사용
 
+  // 파일 선택 이벤트 핸들러
   const handleFileUpload = (e) => {
     const uploadedFile = e.target.files[0];
     if (uploadedFile) {
-      setFile(uploadedFile);
-      setUploadProgress(0); // 초기화
-      simulateFileUpload();
+      setFile(uploadedFile); // file 상태 업데이트
     }
   };
 
+  // 파일이 설정되었을 때 업로드 시작
+  useEffect(() => {
+    if (file) {
+      handleFileUploadComplete();
+    }
+  }, [file]);
+
+  // 파일 업로드 후 서버로 전송
+  const handleFileUploadComplete = async () => {
+    if (!file) {
+      console.error("🚨 파일이 없습니다.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+
+    try {
+      const response = await axios.post(
+        `http://10.28.224.177:30635/sensitive/analysis/?user_id=${userID}`,
+        formData,
+        {
+          headers: {
+            'accept': 'application/json',
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      console.log("✅ 업로드 성공:", response.data);
+      // alert("🎉 영상 업로드 성공!");
+    } catch (error) {
+      console.error("❌ 업로드 실패:", error);
+      // alert("⚠️ 영상 업로드 실패. 다시 시도해주세요.");
+    } finally {
+    }
+  };
+
+  // Drag & Drop 이벤트 핸들링
   const handleDragOver = (e) => {
     e.preventDefault();
     setDragging(true);
@@ -46,11 +78,11 @@ const Sense = () => {
     const uploadedFile = e.dataTransfer.files[0];
     if (uploadedFile) {
       setFile(uploadedFile);
-      setUploadProgress(0); // 초기화
-      simulateFileUpload();
     }
   };
-
+  const closePopup = () => {
+    setShowPopup(false);
+  }
   const handleCategoryChange = (e) => {
     setSelectedCategory(e.target.value);
   };
@@ -61,6 +93,11 @@ const Sense = () => {
 
   return (
     <div className="sense-container">
+      {showPopup && (
+        <PopupGuide
+          onClose={closePopup}
+        />
+      )}
       <h2>영상 카테고리를 선택하고 영상을 업로드하세요!</h2>
 
       {/* Drag-and-Drop File Upload Section */}
@@ -81,15 +118,6 @@ const Sense = () => {
           파일 선택
         </label>
         {file && <p className="file-name">선택된 파일: {file.name}</p>}
-        {uploadProgress > 0 && (
-          <div className="progress-bar-container">
-            <div
-              className="progress-bar"
-              style={{ width: `${uploadProgress}%` }}
-            ></div>
-            <p>{uploadProgress}%</p>
-          </div>
-        )}
       </div>
 
       {/* Dropdown for Video Category */}
@@ -112,11 +140,9 @@ const Sense = () => {
       </div>
 
       {/* 민감도 검사 버튼 */}
-      {file && selectedCategory && (
-        <button className="sensitivity-check-button" onClick={handleSensitivityCheck}>
-          민감도 검사 받기
-        </button>
-      )}
+      <button className="sensitivity-check-button" onClick={handleSensitivityCheck}>
+        민감도 검사 결과보기
+      </button>
     </div>
   );
 };
