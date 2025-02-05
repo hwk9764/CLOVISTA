@@ -220,5 +220,5 @@
   color: #333;
   text-align: left;
   margin-bottom: 30px; /* 분석 박스의 바닥 여백 추가 */
-  height: 80%;
+  height: auto;
 }

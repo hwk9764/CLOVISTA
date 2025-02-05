@@ -26,7 +26,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/main" element={<Main />} />
         <Route path="/main/sense" element={<Sense />} />
         <Route path="/main/senselist" element={<Sense_List />} />
-        <Route path="/main/sense/:id" element={<Sense_Result />} />
+        <Route path="/main/sense/:title" element={<Sense_Result />} />
         <Route path='/main/Swot' element={<Swot/>}/>
         <Route path="/main/Swot/Performance" element={<Swot_Performance />} />
         <Route path="/main/Swot/Engagement" element={<Swot_Engagement />} />
