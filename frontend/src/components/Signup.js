@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Signup.css';
 
 const Signup = () => {
@@ -9,6 +10,8 @@ const Signup = () => {
     confirmPassword: '',
   });
 
+  const navigate = useNavigate();
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -18,23 +21,34 @@ const Signup = () => {
 
   const handleSignup = (e) => {
     e.preventDefault();
-  
+
     // 비밀번호 확인 로직
     if (formData.password !== formData.confirmPassword) {
       alert('비밀번호가 일치하지 않습니다.');
       return;
     }
-  
-    // 회원 정보 로컬 스토리지에 저장 (신규 유저 여부 포함)
-    localStorage.setItem('user', JSON.stringify({
+
+    // 🔹 기존 유저 확인
+    if (localStorage.getItem(formData.email)) {
+      alert('이미 가입된 이메일입니다.');
+      return;
+    }
+
+    // 🔹 새로운 유저 정보 생성
+    const newUser = {
       name: formData.name,
       email: formData.email,
       password: formData.password,
-      newUser: true,  // 신규 유저 여부 추가
-    }));
-  
+      newUser: true, // 신규 유저 여부
+      surveyResponses: {}, // 회원가입 설문
+      identitySurveyResponses: {} // 정체성 설문
+    };
+
+    // 🔹 이메일을 키로 사용하여 저장
+    localStorage.setItem(formData.email, JSON.stringify(newUser));
+
     alert('회원가입이 완료되었습니다.');
-    window.location.href = '/';
+    navigate('/login');
   };
 
   return (
@@ -79,7 +93,7 @@ const Signup = () => {
         />
         <button type="submit" className="signup-button">가입하기</button>
       </form>
-      <a href="/" className="back-to-home">로그인 페이지로 돌아가기</a>
+      <a href="/login" className="back-to-home">로그인 페이지로 돌아가기</a>
     </div>
   );
 };
