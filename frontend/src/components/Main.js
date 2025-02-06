@@ -1,12 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom';
 import './Main.css';
 
 const MainPage = () => {
   const [hasYouTubeChannel, setHasYouTubeChannel] = useState(null);
 
   useEffect(() => {
-    const userInfo = JSON.parse(localStorage.getItem('user')) || {};
+    // 🔹 현재 로그인한 사용자 가져오기
+    const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+    const user_email = currentUser.email; // 이메일 문자열 가져오기
+    const userInfo = JSON.parse(localStorage.getItem(user_email)) || {};
+    
+    console.log(userInfo);
+    
     setHasYouTubeChannel(userInfo.surveyResponses?.hasChannel === '예');
   }, []);
 
@@ -38,7 +44,7 @@ const MainPage = () => {
 };
 
 const ServiceCard = ({ title, description, link }) => {
-  const navigate=useNavigate();
+  const navigate = useNavigate();
 
   const handleClick = () => {
     if (link) {
@@ -47,10 +53,10 @@ const ServiceCard = ({ title, description, link }) => {
   };
 
   return (
-  <div className="service-card" onClick={handleClick} style={{cursor:'pointer'}}>
-    <h3>{title}</h3>
-    <p>{description}</p>
-  </div>
+    <div className="service-card" onClick={handleClick} style={{ cursor: 'pointer' }}>
+      <h3>{title}</h3>
+      <p>{description}</p>
+    </div>
   );
 };
 

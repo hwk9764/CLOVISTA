@@ -109,10 +109,13 @@ const SwotEngagement = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
-  const userData = JSON.parse(localStorage.getItem("user")); // 문자열을 객체로 변환
-  const channelName = userData?.surveyResponses?.channelName;
-  const target_gender = userData?.surveyResponses?.targetGender;
-  const target_age = userData?.surveyResponses?.targetAge;
+  const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+  const user_email = currentUser.email;
+  const name_temp= JSON.parse(localStorage.getItem(user_email))||{};
+  const channelName=name_temp.surveyResponses?.channelName;
+
+  const target_gender = name_temp?.surveyResponses?.targetGender;
+  const target_age = name_temp?.surveyResponses?.targetAge;
 
   // 대시보드 변수
   const [channelEngagement, setChannelEngagement] = useState(null);

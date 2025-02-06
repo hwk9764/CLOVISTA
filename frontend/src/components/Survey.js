@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import "./survey.css";
+import "./Survey.css";
 
 const questions = [
   { type: "multiple_choice", question: "유튜브 채널이 있으신가요?", options: ["예", "아니오"], key: "hasChannel" },
@@ -82,6 +82,7 @@ const Survey = () => {
 
       // 🔹 업데이트된 데이터 저장
       localStorage.setItem(userEmail, JSON.stringify(updatedUserData));
+      console.log(localStorage)
 
       newMessages.push({ sender: "bot", text: "설문이 완료되었습니다! 감사합니다. 😊" });
 
