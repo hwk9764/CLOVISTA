@@ -18,24 +18,35 @@ const Login = ({ isPopup, onClose }) => {
     });
   };
 
-  const handleLogin = () => {
-    const storedUser = JSON.parse(localStorage.getItem('user'));
-  
-    if (!storedUser || storedUser.email !== formData.email || storedUser.password !== formData.password) {
+  const handleLogin = (e) => {
+    e.preventDefault();
+
+    // 🔹 입력한 이메일로 기존 유저 데이터 가져오기
+    const storedUser = JSON.parse(localStorage.getItem(formData.email));
+
+    if (!storedUser) {
+      setErrorMessage('등록되지 않은 이메일입니다.');
+      return;
+    }
+
+    if (storedUser.password !== formData.password) {
       setErrorMessage('잘못된 ID 혹은 비밀번호입니다.');
       return;
     }
-  
+
+    // 🔹 현재 로그인한 사용자 이메일 저장
+    localStorage.setItem("currentUser", JSON.stringify({ email: formData.email }));
+
     alert('로그인이 되었습니다!');
-  
+
     if (storedUser.newUser) {
       alert('신규 이용자시군요?');
       navigate('/survey');  // 설문조사 페이지로 이동
     } else {
       navigate('/main');  // 메인 페이지로 이동
     }
-  
-    onClose();
+
+    if (onClose) onClose();
   };
 
   return (

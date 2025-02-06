@@ -3,23 +3,35 @@ import { useNavigate } from "react-router-dom";
 import "./SurveyChatbot.css";
 
 const questions = [
-  { type: "text", question: "영상 제작 분야는 무엇인가요?", examples: "예: 요리, 여행, 게임, 뷰티 등" },
-  { type: "text", question: "영상 콘텐츠 유형은 어떻게 되나요?", examples: "예: 브이로그, 리뷰, 튜토리얼, 예능 등" },
-  { type: "multiple_choice", question: "영상 작업 주기는 어떻게 되나요?", options: ["1달 1회", "1주일 1회", "1주일 2회", "1주일 3회", "1주일 4회", "매일"] },
-  { type: "text", question: "보유하고 있는 제작용 장비가 있나요?", examples: "예: 편집 프로그램, 고프로, 캡쳐보드, 최신 스마트폰 등" },
-  { type: "text", question: "평소에 생각했던 아이디어가 있나요?", examples: "예: 소개팅 상황극, 일본 여행 브이로그 등" },
-  { type: "text", question: "유튜브를 운영하며 이루고 싶은 목표가 있나요?", examples: "예: 실버버튼 받기, 1년 내에 수익 창출 허가받기, 협찬 유치하기 등" }
+  { key: "preferredContentType", type: "text", question: "선호하는 콘텐츠 유형은 무엇인가요?", examples: "예: 브이로그, 리뷰, 튜토리얼, 예능 등" },
+  { key: "videoCreationTime", type: "text", question: "영상 제작 가능 시간은 어느 정도인가요?", examples: "예: 주 5시간, 주 10시간 등" },
+  { key: "equipmentBudget", type: "text", question: "보유하고 있는 장비 및 예산을 입력해주세요.", examples: "예: 편집 프로그램, 고프로, 캡쳐보드, 최신 스마트폰 등" },
+  { key: "contentIdeas", type: "text", question: "평소 생각했던 콘텐츠 아이디어가 있나요?", examples: "예: 소개팅 상황극, 일본 여행 브이로그 등" },
+  { key: "longTermGoal", type: "text", question: "유튜브 운영 목표는 무엇인가요?", examples: "예: 실버버튼 받기, 1년 내 수익 창출 허가받기, 협찬 유치하기 등" }
 ];
 
 const SurveyChatbot = () => {
   const [messages, setMessages] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [formData, setFormData] = useState({});
   const [inputValue, setInputValue] = useState("");
   const chatEndRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     setMessages([{ sender: "bot", text: questions[0].question }]);
+
+    // 🔹 현재 로그인한 사용자 가져오기
+    const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+    if (!currentUser.email) {
+      alert("로그인이 필요합니다.");
+      navigate("/login");
+      return;
+    }
+
+    // 🔹 기존 설문 응답 가져오기
+    const storedUserData = JSON.parse(localStorage.getItem(currentUser.email)) || {};
+    setFormData(storedUserData.identitySurveyResponses || {});
   }, []);
 
   useEffect(() => {
@@ -27,24 +39,45 @@ const SurveyChatbot = () => {
   }, [messages]);
 
   const handleAnswer = (answer) => {
-    const newMessages = [...messages, { sender: "user", text: answer }];
+    const currentQuestion = questions[currentQuestionIndex];
+    const newFormData = { ...formData, [currentQuestion.key]: answer };
+
+    setFormData(newFormData);
+
+    let newMessages = [...messages, { sender: "user", text: answer }];
 
     if (currentQuestionIndex < questions.length - 1) {
       newMessages.push({ sender: "bot", text: questions[currentQuestionIndex + 1].question });
-      setMessages(newMessages);
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      // 🔹 설문 결과 저장 (identitySurveyResponses 사용)
-      localStorage.setItem("identitySurveyResponses", JSON.stringify(newMessages));
+      // 🔹 현재 로그인한 사용자 가져오기
+      const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+      const userEmail = currentUser.email;
 
-      // 🔹 설문 완료 메시지 추가
+      if (!userEmail) {
+        alert("로그인이 필요합니다.");
+        navigate("/login");
+        return;
+      }
+
+      // 🔹 해당 사용자의 기존 데이터 가져오기
+      const existingData = JSON.parse(localStorage.getItem(userEmail)) || {};
+
+      // 🔹 기존 데이터 유지하면서 `identitySurveyResponses` 업데이트
+      const updatedUserData = {
+        ...existingData,
+        identitySurveyResponses: newFormData
+      };
+
+      // 🔹 업데이트된 데이터 저장
+      localStorage.setItem(userEmail, JSON.stringify(updatedUserData));
+
       newMessages.push({ sender: "bot", text: "설문이 완료되었습니다! 감사합니다. 😊" });
-      setMessages([...newMessages]);
 
-      // 🔹 2초 후 메인 페이지로 이동
-      setTimeout(() => navigate("/main/identity"), 2000);
+      setTimeout(() => navigate("/main"), 2000);
     }
 
+    setMessages(newMessages);
     setInputValue("");
   };
 
@@ -54,7 +87,6 @@ const SurveyChatbot = () => {
     }
   };
 
-  // 🔹 현재 질문 가져오기 (배열 범위를 벗어나지 않도록 체크)
   const currentQuestion = questions[currentQuestionIndex] || null;
   const placeholderText = currentQuestion?.examples || "메시지를 입력하세요...";
 
@@ -69,28 +101,17 @@ const SurveyChatbot = () => {
         <div ref={chatEndRef} />
       </div>
 
-      {/* 🔹 질문이 존재하는 경우에만 입력창 표시 */}
       {currentQuestion ? (
-        currentQuestion.type === "multiple_choice" ? (
-          <div className="options">
-            {currentQuestion.options.map((option, index) => (
-              <button key={index} onClick={() => handleAnswer(option)}>
-                {option}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="input-area">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder={placeholderText} // 🔥 플레이스홀더 수정
-            />
-            <button onClick={() => handleAnswer(inputValue)}>전송</button>
-          </div>
-        )
+        <div className="input-area">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder={placeholderText}
+          />
+          <button onClick={() => handleAnswer(inputValue)}>전송</button>
+        </div>
       ) : null}
     </div>
   );

@@ -7,7 +7,7 @@ const MainPage = () => {
 
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem('user')) || {};
-    setHasYouTubeChannel(userInfo.surveyResponses?.hasChannel === 'yes');
+    setHasYouTubeChannel(userInfo.surveyResponses?.hasChannel === '예');
   }, []);
 
   return (
