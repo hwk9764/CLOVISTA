@@ -306,7 +306,7 @@ async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
         metrics['comment_ratio'] = metrics['avg_comments_per_video'] / competitor_avg_comments if competitor_avg_comments > 0 else 0
 
         executor = CompletionExecutor()
-        return executor.execute('revenue', metrics, max_tokens=230)
+        return executor.execute('revenue', metrics, max_tokens=250)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
