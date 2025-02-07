@@ -99,9 +99,15 @@ async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
             return default
     try:
         channel_query = f"""
-            SELECT "id", "subscriberCount"
-            FROM "Channel"
-            WHERE "id" = '{name_to_id[channel_name]}'
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            )
+            SELECT dc.channel_id as "id", dc."totalSubscriberCount" as "subscriberCount"
+            FROM public."DailyChannel" dc
+            CROSS JOIN latest_date l
+            WHERE dc.channel_id = '{name_to_id[channel_name]}'
+            AND dc.date = l.max_date
         """
         channel_df = pd.read_sql(channel_query, db_engine)
         if channel_df.empty:
@@ -114,12 +120,19 @@ async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
         total_channels = pd.read_sql(total_channels_query, db_engine).iloc[0]['count']
 
         revenue_query = f"""
-            WITH channel_metrics AS (
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            ),
+            channel_metrics AS (
                 SELECT 
-                    c."id",
-                    CAST(c."viewCount" AS FLOAT) as view_count,
-                    CAST(c."Donation" AS FLOAT) as donation
-                FROM "Channel" c
+                    dc.channel_id as id,
+                    dc."totalViewCount" as view_count,
+                    c."Donation" as donation
+                FROM public."DailyChannel" dc
+                JOIN public."Channel" c ON c.id = dc.channel_id
+                CROSS JOIN latest_date l
+                WHERE dc.date = l.max_date
             ),
             channel_ranks AS (
                 SELECT 
@@ -130,10 +143,13 @@ async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
             ),
             avg_metrics AS (
                 SELECT 
-                    AVG(CAST(c."viewCount" AS FLOAT)) as avg_views,
-                    AVG(CAST(c."Donation" AS FLOAT)) as avg_donation
-                FROM "Channel" c
-                WHERE CAST(c."subscriberCount" AS FLOAT) 
+                    AVG(dc."totalViewCount") as avg_views,
+                    AVG(c."Donation") as avg_donation
+                FROM public."DailyChannel" dc
+                JOIN public."Channel" c ON c.id = dc.channel_id
+                CROSS JOIN latest_date l
+                WHERE dc.date = l.max_date
+                AND CAST(dc."totalSubscriberCount" AS FLOAT) 
                 BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
             )
             SELECT 
@@ -254,15 +270,21 @@ async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
         metrics['comment_comparison_ratio'] = metrics['ad_comment_ratio'] / metrics['normal_comment_ratio'] if metrics['normal_comment_ratio'] > 0 else 0
 
         competitor_query = f"""
-            WITH competitor_metrics AS (
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            ),
+            competitor_metrics AS (
                 SELECT 
                     AVG(CAST("videoViewCount" AS FLOAT)) as avg_views,
                     AVG(CAST("videoLikeCount" AS FLOAT)) as avg_likes,
                     AVG(CAST("commentCount" AS FLOAT)) as avg_comments
                 FROM "Video" v
-                JOIN "Channel" c ON v.channel_id = c.id
+                JOIN public."DailyChannel" dc ON v.channel_id = dc.channel_id
+                CROSS JOIN latest_date l
                 WHERE v."hasPaidProductPlacement" = true
-                AND CAST(c."subscriberCount" AS FLOAT) 
+                AND dc.date = l.max_date
+                AND CAST(dc."totalSubscriberCount" AS FLOAT) 
                 BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
                 AND v.channel_id != '{channel_id}'
                 AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
@@ -301,9 +323,15 @@ async def analyze_engagement(channel_name: str, db_engine=Depends(get_db_engine)
         return round(float(value), decimals)
     try:
         channel_query = f"""
-            SELECT "subscriberCount"
-            FROM public."Channel"
-            WHERE "id" = '{name_to_id[channel_name]}'
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            )
+            SELECT "totalSubscriberCount" as "subscriberCount"
+            FROM public."DailyChannel" dc
+            CROSS JOIN latest_date l
+            WHERE dc.channel_id = '{name_to_id[channel_name]}'
+            AND dc.date = l.max_date
         """
         channel_info = pd.read_sql(channel_query, db_engine)
         subscriber_count = channel_info.iloc[0]["subscriberCount"]
@@ -327,7 +355,11 @@ async def analyze_engagement(channel_name: str, db_engine=Depends(get_db_engine)
         """
 
         competitor_query = f"""
-            WITH competitor_metrics AS (
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            ),
+            competitor_metrics AS (
                 SELECT 
                     v.channel_id,
                     SUM(CAST(v."videoViewCount" AS INTEGER)) as total_views,
@@ -335,8 +367,10 @@ async def analyze_engagement(channel_name: str, db_engine=Depends(get_db_engine)
                     SUM(CAST(v."commentCount" AS INTEGER)) as total_comments,
                     SUM(CAST(v."videoShareCount" AS INTEGER)) as total_shares
                 FROM public."Video" v
-                JOIN public."Channel" c ON v.channel_id = c.id
-                WHERE CAST(c."subscriberCount" AS INTEGER) 
+                JOIN public."DailyChannel" dc ON v.channel_id = dc.channel_id
+                CROSS JOIN latest_date l
+                WHERE dc.date = l.max_date
+                AND CAST(dc."totalSubscriberCount" AS INTEGER) 
                     BETWEEN CAST({subscriber_count} AS INTEGER) - 500000 
                     AND CAST({subscriber_count} AS INTEGER) + 500000
                 AND v.channel_id != '{name_to_id[channel_name]}'
@@ -381,11 +415,18 @@ async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engi
     try:
         # 채널 구독자 수 확인 (경쟁 채널 범위 설정용)
         channel_info_query = f"""
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            )
             SELECT 
-                CAST("subscriberCount" AS INTEGER) as "subscriberCount",
-                "DisplayName"
-            FROM public."Channel"
-            WHERE "id" = '{name_to_id[channel_name]}'
+                CAST(dc."totalSubscriberCount" AS INTEGER) as "subscriberCount",
+                c."DisplayName"
+            FROM public."DailyChannel" dc
+            JOIN public."Channel" c ON c.id = dc.channel_id
+            CROSS JOIN latest_date l
+            WHERE dc.channel_id = '{name_to_id[channel_name]}'
+            AND dc.date = l.max_date
         """
         channel_info = pd.read_sql(channel_info_query, db_engine)
         subscriber_count = channel_info.iloc[0]["subscriberCount"]
@@ -402,11 +443,18 @@ async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engi
 
         # 경쟁 채널들의 라이브 방송 평균
         competitor_live_query = f"""
-            SELECT COALESCE(AVG(CAST("LiveBroadcastingCount" AS FLOAT)), 0) as avg_competitor_live
-            FROM public."Channel"
-            WHERE CAST("subscriberCount" AS INTEGER) 
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            )
+            SELECT COALESCE(AVG(CAST(c."LiveBroadcastingCount" AS FLOAT)), 0) as avg_competitor_live
+            FROM public."Channel" c
+            JOIN public."DailyChannel" dc ON c.id = dc.channel_id
+            CROSS JOIN latest_date l
+            WHERE dc.date = l.max_date
+            AND CAST(dc."totalSubscriberCount" AS INTEGER) 
                 BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
-            AND "id" != '{name_to_id[channel_name]}'
+            AND c.id != '{name_to_id[channel_name]}'
         """
 
         # 크리에이터 댓글 수
@@ -420,20 +468,28 @@ async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engi
 
         # 경쟁 채널들의 평균 댓글 수
         competitor_replies_query = f"""
-            SELECT COALESCE(AVG(reply_count), 0) as avg_competitor_replies
-            FROM (
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            ),
+            reply_counts AS (
                 SELECT 
                     ch."id",
                     COUNT(*) as reply_count
                 FROM public."Channel" ch
+                JOIN public."DailyChannel" dc ON ch.id = dc.channel_id
+                CROSS JOIN latest_date l
                 JOIN public."Video" v ON v."channel_id" = ch."id"
                 JOIN public."Comments" cm ON cm."vId" = v."vId"
                     AND strpos(cm."replies", '@' || ch."DisplayName") > 0
-                WHERE CAST(ch."subscriberCount" AS INTEGER)
+                WHERE dc.date = l.max_date
+                AND CAST(dc."totalSubscriberCount" AS INTEGER)
                     BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
                 AND ch."id" != '{name_to_id[channel_name]}'
                 GROUP BY ch."id"
-            ) subquery
+            )
+            SELECT COALESCE(AVG(reply_count), 0) as avg_competitor_replies
+            FROM reply_counts
         """
 
         # 순위 쿼리 (라이브 방송 기준)
@@ -470,9 +526,15 @@ async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engi
 
         # 유사 규모 채널 수와 순위 쿼리
         similar_size_query = f"""
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            )
             SELECT COUNT(*) as similar_size_channels
-            FROM public."Channel"
-            WHERE CAST("subscriberCount" AS INTEGER)
+            FROM public."DailyChannel" dc
+            CROSS JOIN latest_date l
+            WHERE dc.date = l.max_date
+            AND CAST(dc."totalSubscriberCount" AS INTEGER)
                 BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
         """
         total_channels_query = "SELECT COUNT(*) as total_channels FROM public.\"Channel\""
@@ -865,9 +927,15 @@ async def analyze_upload_pattern(channel_name: str, db_engine=Depends(get_db_eng
 async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
     try:
         channel_info_query = f"""
-            SELECT CAST("subscriberCount" AS INTEGER) as "subscriberCount"
-            FROM public."Channel" 
-            WHERE "id" = '{name_to_id[channel_name]}'
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            )
+            SELECT CAST("totalSubscriberCount" AS INTEGER) as "subscriberCount"
+            FROM public."DailyChannel" dc
+            CROSS JOIN latest_date l
+            WHERE dc.channel_id = '{name_to_id[channel_name]}'
+            AND dc.date = l.max_date
         """
         channel_info = pd.read_sql(channel_info_query, db_engine)
         subscriber_count = channel_info.iloc[0]["subscriberCount"]
@@ -901,20 +969,26 @@ async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
 
         # 경쟁 채널 통계
         competitor_query = f"""
-            WITH competitor_stats AS (
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            ),
+            competitor_stats AS (
                 SELECT 
                     v.channel_id,
-                    c."subscriberCount",
+                    dc."totalSubscriberCount" as "subscriberCount",
                     AVG(CAST(v."videoViewCount" AS FLOAT)) as avg_views,
                     AVG(CAST(v."subscriberViewedRatio" AS FLOAT)) as view_sub_ratio,
                     COUNT(*) as upload_count
                 FROM public."Video" v
-                JOIN public."Channel" c ON v.channel_id = c.id
-                WHERE CAST(c."subscriberCount" AS INTEGER)
+                JOIN public."DailyChannel" dc ON v.channel_id = dc.channel_id
+                CROSS JOIN latest_date l
+                WHERE dc.date = l.max_date
+                AND CAST(dc."totalSubscriberCount" AS INTEGER)
                     BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
                 AND v.channel_id != '{name_to_id[channel_name]}'
                 AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
-                GROUP BY v.channel_id, c."subscriberCount"
+                GROUP BY v.channel_id, dc."totalSubscriberCount"
             )
             SELECT 
                 AVG(avg_views) as competitor_avg_view,
@@ -968,9 +1042,17 @@ async def analyze_channel_summary(channel_name: str, db_engine=Depends(get_db_en
     try:
         # 채널 기본 정보 조회
         channel_query = f"""
-            SELECT "id", "subscriberCount", "viewCount"
-            FROM "Channel"
-            WHERE "id" = '{name_to_id[channel_name]}'
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            )
+            SELECT dc.channel_id as "id", 
+                dc."totalSubscriberCount" as "subscriberCount", 
+                dc."totalViewCount" as "viewCount"
+            FROM public."DailyChannel" dc
+            CROSS JOIN latest_date l
+            WHERE dc.channel_id = '{name_to_id[channel_name]}'
+            AND dc.date = l.max_date
         """
         channel_df = pd.read_sql(channel_query, db_engine)
         if channel_df.empty:
@@ -1001,21 +1083,27 @@ async def analyze_channel_summary(channel_name: str, db_engine=Depends(get_db_en
 
         # 2. 경쟁 채널 성과 지표
         competitor_query = f"""
-            WITH video_metrics AS (
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            ),
+            video_metrics AS (
                 SELECT 
-                    c."id",
+                    v.channel_id as "id",
                     AVG(CAST(v."videoViewCount" AS FLOAT)) as avg_views,
                     COUNT(v."vId") as upload_count,
                     AVG(CAST(v."videoLikeCount" AS FLOAT) / NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) * 100 as like_ratio,
                     AVG(CAST(v."commentCount" AS FLOAT) / NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) * 100 as comment_ratio,
                     AVG(CAST(v."videoShareCount" AS FLOAT) / NULLIF(CAST(v."videoViewCount" AS FLOAT), 0)) * 100 as share_ratio
-                FROM "Channel" c
-                LEFT JOIN "Video" v ON c."id" = v."channel_id"
-                    AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
-                WHERE CAST(c."subscriberCount" AS FLOAT) 
+                FROM public."DailyChannel" dc
+                JOIN public."Video" v ON dc.channel_id = v.channel_id
+                CROSS JOIN latest_date l
+                WHERE dc.date = l.max_date
+                AND CAST(dc."totalSubscriberCount" AS FLOAT) 
                     BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
-                AND c."id" != '{channel_id}'
-                GROUP BY c."id"
+                AND dc.channel_id != '{channel_id}'
+                AND CAST(v."videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
+                GROUP BY v.channel_id
             )
             SELECT 
                 COALESCE(AVG(avg_views), 0) as competitor_avg_view,
@@ -1040,24 +1128,33 @@ async def analyze_channel_summary(channel_name: str, db_engine=Depends(get_db_en
 
         # 4. 수익성 지표 조회
         revenue_query = f"""
-            WITH revenue_ranks AS (
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            ),
+            revenue_ranks AS (
                 SELECT 
-                    "id",
-                    CAST("viewCount" AS FLOAT) as view_count,
-                    CAST("Donation" AS FLOAT) as donation,
-                    RANK() OVER (ORDER BY CAST("viewCount" AS FLOAT) DESC) as view_rank,
-                    RANK() OVER (ORDER BY CAST("Donation" AS FLOAT) DESC) as donation_rank
-                FROM "Channel"
-                WHERE "viewCount" IS NOT NULL
+                    dc.channel_id as "id",
+                    dc."totalViewCount" as view_count,
+                    c."Donation" as donation,
+                    RANK() OVER (ORDER BY dc."totalViewCount" DESC) as view_rank,
+                    RANK() OVER (ORDER BY c."Donation" DESC) as donation_rank
+                FROM public."DailyChannel" dc
+                JOIN public."Channel" c ON c.id = dc.channel_id
+                CROSS JOIN latest_date l
+                WHERE dc.date = l.max_date
             ),
             competitor_avg AS (
                 SELECT 
-                    AVG(CAST("viewCount" AS FLOAT)) as avg_views,
-                    AVG(CAST("Donation" AS FLOAT)) as avg_donation
-                FROM "Channel"
-                WHERE CAST("subscriberCount" AS FLOAT) 
+                    AVG(dc."totalViewCount") as avg_views,
+                    AVG(c."Donation") as avg_donation
+                FROM public."DailyChannel" dc
+                JOIN public."Channel" c ON c.id = dc.channel_id
+                CROSS JOIN latest_date l
+                WHERE dc.date = l.max_date
+                AND CAST(dc."totalSubscriberCount" AS FLOAT) 
                     BETWEEN {subscriber_count} - 500000 AND {subscriber_count} + 500000
-                AND "id" != '{channel_id}'
+                AND dc.channel_id != '{channel_id}'
             )
             SELECT 
                 COALESCE(r.view_count, 0) as view_count,
