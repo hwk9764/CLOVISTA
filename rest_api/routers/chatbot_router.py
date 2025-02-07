@@ -13,7 +13,7 @@ class CompletionExecutor:
         self._api_key = "Bearer nv-f5786fde571f424786ed0823986ca992h3P1"
         self._request_id = "309fa53d16a64d7c9c2d8f67f74ac70d"
 
-    def execute(self, prompt_type: str, metrics: Dict[str, Any], max_tokens: int = 120):
+    def execute(self, prompt_type: str, metrics: Dict[str, Any], max_tokens: int = 150):
         from prs_cns.prompt import (PROMPT_revenue, PROMPT_engagement, PROMPT_communication,
                                     PROMPT_targeting, PROMPT_popular_videos, PROMPT_thumbnail,
                                     PROMPT_upload_pattern, PROMPT_activity, PROMPT_summary)
@@ -1024,7 +1024,8 @@ async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
             "view_sub_ratio_multiplier": round(float(view_stats_df.iloc[0]["view_sub_ratio"]) / float(competitor_df.iloc[0]["competitor_view_sub_ratio"]), 1) if not competitor_df.empty and competitor_df.iloc[0]["competitor_view_sub_ratio"] is not None and float(competitor_df.iloc[0]["competitor_view_sub_ratio"]) != 0 else 0,
             "upload_count": int(upload_df.iloc[0]["upload_count"]) if not upload_df.empty and upload_df.iloc[0]["upload_count"] is not None else 0,
             "competitor_avg_upload_count": round(float(competitor_df.iloc[0]["competitor_avg_upload_count"]) if not competitor_df.empty and competitor_df.iloc[0]["competitor_avg_upload_count"] is not None else 0, 1),
-            "total_channels": int(total_channels_df.iloc[0]["total_channels"]) if not total_channels_df.empty and total_channels_df.iloc[0]["total_channels"] is not None else 0
+            "total_channels": int(total_channels_df.iloc[0]["total_channels"]) if not total_channels_df.empty and total_channels_df.iloc[0]["total_channels"] is not None else 0,
+            "view_rank_percent": round((view_stats_df.iloc[0]["view_rank"] / total_channels_df.iloc[0]["total_channels"]) * 100, 1) if not view_stats_df.empty and not total_channels_df.empty else 0,
         }
 
         executor = CompletionExecutor()
