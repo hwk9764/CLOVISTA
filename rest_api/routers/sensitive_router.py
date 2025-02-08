@@ -181,9 +181,9 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     scope = pred.split("영향 범위:")[-1].strip()
     scope_score, scope_text = get_score_text(scope)
     
-    # controversy_type 가져오는 코드 수정
+    # controversy_type 가져오는 코드 수정 -> [논란 유형1, 논란 유형2, ..]
     controversy_type_line = pred.split("논란 유형:")[1].split("\n")[0].strip()
-    controversy_type = controversy_type_line if controversy_type_line != "없음" else None
+    controversy_types = controversy_type_line if controversy_type_line != "없음" else None
 
     # --------------
     # 과거 논란 사례 제시
@@ -198,8 +198,12 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     result_df = df
     
     # controversy_type = "사회적 소수자 비하"
-    if controversy_type:
-        result_df = result_df[result_df['논란 유형'].str.contains(controversy_type, na=False)]
+    if controversy_types:
+        for controversy_type in controversy_types:
+            if controversy_type == '성적 발언':
+                result_df = result_df[result_df['논란 유형'] == '성 상품화']
+            else:
+                result_df = result_df[result_df['논란 유형'].str.contains(controversy_type, na=False)]
     
     if result_df.empty:
         controversy_intro = {"message": "이 스크립트에는 과거에 유사했던 논란 사례가 없습니다."}
