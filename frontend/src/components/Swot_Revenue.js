@@ -31,8 +31,12 @@ ChartJS.register(
 
 const SwotRevenue = () => {
   const navigate = useNavigate();
-  const userData = JSON.parse(localStorage.getItem("user")); // 문자열을 객체로 변환
-  const channelName = userData?.surveyResponses?.channelName;
+
+  const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+  const user_email = currentUser.email;
+  const name_temp= JSON.parse(localStorage.getItem(user_email))||{};
+  const channelName=name_temp.surveyResponses?.channelName;
+
 
   const [bestAd, setBestAd] = useState(null); // 가장 성적이 좋은 광고 영상 데이터 상태
   const [worstAd, setWorstAd] = useState(null); // 가장 성적이 안 좋은 광고 영상 데이터 상태

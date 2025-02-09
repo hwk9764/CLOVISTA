@@ -47,10 +47,10 @@ const Performance = () => {
   const [popular_thumbnail_analysis, setPopularThumbnail] = useState(null);
   const [freq_upload_analysis, setFreqVideo] = useState(null);
   const [activation_analysis, setActivation] = useState(null);
-
-  const userData = JSON.parse(localStorage.getItem("user")); // 문자열을 객체로 변환
-  const channelName = userData?.surveyResponses?.channelName;
-
+  const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+  const user_email = currentUser.email;
+  const name_temp = JSON.parse(localStorage.getItem(user_email)) || {};
+  const channelName = name_temp.surveyResponses?.channelName;
   useEffect(() => {
     const fetchData = async () => {
       try {

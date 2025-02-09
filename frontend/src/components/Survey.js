@@ -1,150 +1,140 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './survey.css';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import "./Survey.css";
+
+const questions = [
+  { type: "multiple_choice", question: "유튜브 채널이 있으신가요?", options: ["예", "아니오"], key: "hasChannel" },
+  { type: "text", question: "유튜브 채널 이름을 입력해주세요.", key: "channelName", condition: "예" },
+  { type: "text", question: "채널 주 컨텐츠는 무엇인가요?", key: "contentCategory" },
+  { type: "multiple_choice", question: "주 타겟 구독자 연령은?", options: ["10-20", "20-30", "30-40"], key: "targetAge" },
+  { type: "multiple_choice", question: "주 타겟 구독자 성별은?", options: ["남성", "여성", "그 외"], key: "targetGender" }
+];
 
 const Survey = () => {
+  const [messages, setMessages] = useState([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [formData, setFormData] = useState({});
+  const [inputValue, setInputValue] = useState("");
+  const chatEndRef = useRef(null);
   const navigate = useNavigate();
-  const [hasChannel, setHasChannel] = useState(null);
-  const [formData, setFormData] = useState({
-    channelName: '',
-    contentCategory: '',
-    targetAge: '',
-    targetGender: '',
-  });
 
-  const handleRadioChange = (e) => {
-    setHasChannel(e.target.value);
-    setFormData({
-      channelName: '',
-      contentCategory: '',
-      targetAge: '',
-      targetGender: '',
-    });
+  useEffect(() => {
+    setMessages([{ sender: "bot", text: questions[0].question }]);
+
+    // 🔹 현재 로그인한 사용자 가져오기
+    const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+    if (!currentUser.email) {
+      alert("로그인이 필요합니다.");
+      navigate("/login");
+      return;
+    }
+
+    // 🔹 기존 설문 응답 가져오기
+    const storedUserData = JSON.parse(localStorage.getItem(currentUser.email)) || {};
+    setFormData(storedUserData.surveyResponses || {});
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleAnswer = (answer) => {
+    const currentQuestion = questions[currentQuestionIndex];
+    const newFormData = { ...formData, [currentQuestion.key]: answer };
+
+    let nextQuestionIndex = currentQuestionIndex + 1;
+
+    // "아니오" 선택 시 "유튜브 채널 이름 입력" 질문 건너뛰기
+    if (currentQuestion.key === "hasChannel" && answer === "아니오") {
+      nextQuestionIndex += 1; // 다음 질문이 "채널 이름 입력"이므로 이를 스킵
+    }
+
+    setFormData(newFormData);
+
+    const newMessages = [
+      ...messages,
+      { sender: "user", text: answer }
+    ];
+
+    if (nextQuestionIndex < questions.length) {
+      newMessages.push({ sender: "bot", text: questions[nextQuestionIndex].question });
+      setCurrentQuestionIndex(nextQuestionIndex);
+    } else {
+      // 🔹 현재 로그인한 사용자 가져오기
+      const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+      const userEmail = currentUser.email;
+
+      if (!userEmail) {
+        alert("로그인이 필요합니다.");
+        navigate("/login");
+        return;
+      }
+
+      // 🔹 해당 사용자의 기존 데이터 가져오기
+      const existingData = JSON.parse(localStorage.getItem(userEmail)) || {};
+
+      // 🔹 기존 데이터 유지하면서 `surveyResponses` 업데이트
+      const updatedUserData = {
+        ...existingData,
+        newUser: false,
+        surveyResponses: newFormData
+      };
+
+      // 🔹 업데이트된 데이터 저장
+      localStorage.setItem(userEmail, JSON.stringify(updatedUserData));
+      console.log(localStorage)
+
+      newMessages.push({ sender: "bot", text: "설문이 완료되었습니다! 감사합니다. 😊" });
+
+      setTimeout(() => navigate("/main"), 2000);
+    }
+
+    setMessages(newMessages);
+    setInputValue("");
   };
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && inputValue.trim()) {
+      handleAnswer(inputValue.trim());
+    }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-
-    // 사용자 정보 업데이트 (설문조사 응답 저장 및 신규 유저 상태 변경)
-    const storedUser = JSON.parse(localStorage.getItem('user')) || {};
-    storedUser.newUser = false;
-    storedUser.surveyResponses = {
-      hasChannel,
-      ...formData,
-    };
-    console.log(localStorage)
-    localStorage.setItem('user', JSON.stringify(storedUser));
-
-    alert('설문조사가 완료되었습니다.');
-    navigate('/main');
-  };
+  const currentQuestion = questions[currentQuestionIndex] || null;
+  const placeholderText = "답변을 입력하세요...";
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '50px', background: 'linear-gradient(to bottom, #e8f5c8, #d2edc4)', padding: '50px', borderRadius: '10px' }}>
-      <h2>Survey</h2>
-      <p>CLOVISTA의 맞춤형 분석을 위해 아래의 설문에 응답해주세요!</p>
-
-      <div>
-        <p>유튜브 채널이 있으신가요?</p>
-        <label>
-          <input type="radio" name="hasChannel" value="yes" onChange={handleRadioChange} /> 예
-        </label>
-        <label style={{ marginLeft: '20px' }}>
-          <input type="radio" name="hasChannel" value="no" onChange={handleRadioChange} /> 아니오
-        </label>
+    <div className="chatbot-container">
+      <div className="chat-window">
+        {messages.map((msg, index) => (
+          <div key={index} className={`chat-bubble ${msg.sender}`}>
+            {msg.text}
+          </div>
+        ))}
+        <div ref={chatEndRef} />
       </div>
 
-      {hasChannel === 'yes' && (
-        <>
-          <div>
+      {currentQuestion ? (
+        currentQuestion.type === "multiple_choice" ? (
+          <div className="options">
+            {currentQuestion.options.map((option, index) => (
+              <button key={index} onClick={() => handleAnswer(option)}>
+                {option}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="input-area">
             <input
               type="text"
-              name="channelName"
-              placeholder="유튜브 채널 이름"
-              value={formData.channelName}
-              onChange={handleChange}
-              style={{ display: 'block', margin: '10px auto', padding: '8px', width: '300px' }}
-              required
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder={placeholderText}
             />
+            <button onClick={() => handleAnswer(inputValue)}>전송</button>
           </div>
-          <div>
-            <input
-              type="text"
-              name="contentCategory"
-              placeholder="채널 주 컨텐츠"
-              value={formData.contentCategory}
-              onChange={handleChange}
-              style={{ display: 'block', margin: '10px auto', padding: '8px', width: '300px' }}
-              required
-            />
-          </div>
-          <div>
-            <p>주 타겟 구독자 연령</p>
-            <select name="targetAge" onChange={handleChange} style={{ margin: '10px' }} required>
-              <option value="">선택</option>
-              <option value="10-20">10-20</option>
-              <option value="20-30">20-30</option>
-              <option value="30-40">30-40</option>
-            </select>
-          </div>
-          <div>
-            <p>주 타겟 구독자 성별</p>
-            <select name="targetGender" onChange={handleChange} style={{ margin: '10px' }} required>
-              <option value="">선택</option>
-              <option value="남성">남성</option>
-              <option value="여성">여성</option>
-              <option value="그 외">그 외</option>
-            </select>
-          </div>
-        </>
-      )}
-
-      {hasChannel === 'no' && (
-        <>
-          <div>
-            <input
-              type="text"
-              name="contentCategory"
-              placeholder="채널 주 컨텐츠"
-              value={formData.contentCategory}
-              onChange={handleChange}
-              style={{ display: 'block', margin: '10px auto', padding: '8px', width: '300px' }}
-              required
-            />
-          </div>
-          <div>
-            <p>주 타겟 구독자 연령</p>
-            <select name="targetAge" onChange={handleChange} style={{ margin: '10px' }} required>
-              <option value="">선택</option>
-              <option value="10-20">10-20</option>
-              <option value="20-30">20-30</option>
-              <option value="30-40">30-40</option>
-            </select>
-          </div>
-          <div>
-            <p>주 타겟 구독자 성별</p>
-            <select name="targetGender" onChange={handleChange} style={{ margin: '10px' }} required>
-              <option value="">선택</option>
-              <option value="남성">남성</option>
-              <option value="여성">여성</option>
-              <option value="그 외">그 외</option>
-            </select>
-          </div>
-        </>
-      )}
-
-      {hasChannel && (
-        <button onClick={handleSubmit} style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: 'black', color: 'white', border: 'none', borderRadius: '5px' }}>
-          Submit
-        </button>
-      )}
+        )
+      ) : null}
     </div>
   );
 };

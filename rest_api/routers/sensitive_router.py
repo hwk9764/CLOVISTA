@@ -4,6 +4,10 @@ import json
 import requests
 from fastapi import HTTPException, APIRouter, UploadFile, File
 from prs_cns.prompt import PROMPT_sensitive
+from pydantic import BaseModel
+from typing import List, Optional
+import pandas as pd
+import ast
 
 sensitive_router = APIRouter()
 
@@ -32,7 +36,7 @@ class CompletionExecutor:
             return response_data["result"]["message"]["content"]
         else:
             # 에러 처리
-            raise Exception(f"Request failed with status code {response.status_code}: {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
 
     def execute_retry(self, completion_request):
         headers = {
@@ -57,6 +61,8 @@ class CompletionExecutor:
                 time.sleep(10)
                 print(response.json())
                 retries += 1
+            else:
+                raise HTTPException(status_code=response.status_code, detail=response.text)
 
 
 # CompletionExecutor 객체 생성 및 실행
@@ -146,7 +152,7 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     ]
     request_data = {
         "messages": formatted_prompt,
-        "topP": 0.7,
+        "topP": 0.8,
         "topK": 0,
         "maxTokens": 512,
         "temperature": 0.2,
@@ -174,16 +180,109 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     danger_score, danger_text = get_score_text(danger)
     scope = pred.split("영향 범위:")[-1].strip()
     scope_score, scope_text = get_score_text(scope)
+    
+    # controversy_type 가져오는 코드 수정 -> [논란 유형1, 논란 유형2, ..], '없음'인 경우는 빈 리스트로 반환
+    controversy_type_line = pred.split("논란 유형:")[1].split("\n")[0].strip()
+    controversy_types = controversy_type_line if controversy_type_line != "없음" else None
 
+    # --------------
+    # 과거 논란 사례 제시
+    try:
+        df = pd.read_csv('/data/ephemeral/home/level4-nlp-finalproject-hackathon-nlp-03-lv3/rest_api/routers/Controversy_Cases.csv')
+        df['민감 발언'] = df['민감 발언'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else None)
+        df['기사 링크'] = df['기사 링크'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else None)
+
+    except Exception as e:
+        print("Failed to load CSV:", e)
+    
+    result_df = df
+    
+    if not controversy_types:
+        # controversy_types가 빈 리스트일 경우, result_df를 빈 데이터프레임으로 초기화
+        result_df = pd.DataFrame(columns=df.columns)
+    else:
+        for controversy_type in controversy_types:
+            if controversy_type == '성적 발언':
+                result_df = result_df[result_df['논란 유형'] == '성 상품화']
+            else:
+                result_df = result_df[result_df['논란 유형'].str.contains(controversy_type, na=False)]
+
+    if result_df.empty:
+        controversy_intro = {"message": "이 스크립트에는 과거에 유사했던 논란 사례가 없습니다."}
+    else:
+        # 검색된 사례들의 대분류와 논란 유형 수집
+        categories = set()
+        types = set()
+        for _, row in result_df.iterrows():
+            if pd.notna(row['대분류']):
+                categories.update(row['대분류'].split(', '))
+            if pd.notna(row['논란 유형']):
+                types.add(row['논란 유형'])
+
+        ids = result_df['id'].tolist()
+        controversy_intro = {
+            "message": f"검색된 사례들은 다음 카테고리에 해당합니다: {', '.join(categories)}. 구체적인 논란 유형으로는 {', '.join(types)}이(가) 있습니다. 과거에 이 유형을 다룬 유튜브 크리에이터들 중에는 큰 논란이 일었던 적이 있으며, 아래에 관련한 사례가 예시로 주어집니다. 유사한 논란을 피하기 위해 관련 내용을 수정하거나 주의 깊게 다루는 것을 권장합니다.",
+            "total_cases": len(result_df),
+            "cases": ids
+        }
+
+        details, sensitive_speeches, controversy_articles = [], [], []
+        for id in ids:
+            try:
+                controversy = df[df['id'] == id].iloc[0]
+            except IndexError:
+                raise HTTPException(status_code=404, detail="Record not found.")
+            
+            # 논란 카테고리 및 세부 유형, 영상 내용 설명
+            detail = {
+                "논란 카테고리": controversy['대분류'],
+                "논란 세부유형": controversy['논란 유형'],
+                "영상 내용": controversy['영상 내용']
+            }
+            details.append(detail)
+
+            # 민감 발언과 발언의 부적절성, 혹은 컨텐츠의 부적절성
+            sensitive_speech = {}
+            if controversy['민감 발언']:
+                sensitive_speech['문제 발언'] = [f"- 문제 발언 {index + 1}: {speech}" for index, speech in enumerate(controversy['민감 발언'])]
+                sensitive_speech['발언의 부적절성'] = controversy['발언의 부적절성']
+            else:
+                sensitive_speech = {
+                    "컨텐츠의 부적절성": controversy['컨텐츠의 부적절성']
+                }
+            sensitive_speeches.append(sensitive_speech)
+
+            # 기사가 있으면 링크 나열
+            if controversy['기사화 여부']:
+                articles = [{"article_title": title, "article_link": link} for title, link in controversy['기사 링크']]
+                controversy_article = {
+                    "message": "이 사건은 논란이 확산되자 기사화되었습니다. 다음은 관련 기사들의 목록입니다:",
+                    "articles": articles
+                }
+            else:
+                controversy_article = {"message": "이 사건에 대한 기사화된 내용은 없습니다."}
+            controversy_articles.append(controversy_article)
+    # --------------
+    
     # 결과 저장
     output_json = {
-        "selected_text": selected_text,
-        "prob_score": prob_score,
-        "prob_text": prob_text,
-        "danger_score": danger_score,
-        "danger_text": danger_text,
-        "scope_score": scope_score,
-        "scope_text": scope_text,
+        "upper": {
+            "selected_text": selected_text,
+            "prob_score": prob_score,
+            "prob_text": prob_text,
+            "danger_score": danger_score,
+            "danger_text": danger_text,
+            "scope_score": scope_score,
+            "scope_text": scope_text,
+        },
+        "lower": {
+            "controversy_type": controversy_type,
+            "controversy_intro": controversy_intro,
+            "controversy_details": details,
+            "sensitive_speeches": sensitive_speeches,
+            "controversy_articles": controversy_articles
+        }
+
     }
     with open(upload_dir + "/" + title + ".json", "w") as json_file:
         json.dump(output_json, json_file, ensure_ascii=False, indent=4)

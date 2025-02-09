@@ -51,8 +51,11 @@
 
 .gauge {
   position: relative;
+  width: 200px;
+  height: 100px;
   margin: 0 auto;
   overflow: hidden;
+  margin-bottom: 40px;
 }
 
 .gauge-background {
@@ -121,17 +124,6 @@
   z-index: 3;
 }
 
-.score-text {
-  font-size: 18px;
-  font-weight: bold;
-  color: black;
-}
-
-.label-text {
-  font-size: 14px;
-  color: gray;
-}
-
 .gauge_wrapper {
   background-color: white;
   padding: 20px;
@@ -145,6 +137,17 @@
   /* 전체 콘텐츠 가운데 정렬 */
   height: auto;
 }
+.score-text {
+  font-size: 18px;
+  font-weight: bold;
+  color: black;
+}
+
+.label-text {
+  font-size: 14px;
+  color: gray;
+}
+
 
 .engagement_analysis {
   background-color: white;
