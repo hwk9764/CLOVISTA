@@ -525,29 +525,45 @@ async def get_creator_communication(channel_name: str, db_engine=Depends(get_db_
 
         # 대댓글 수 계산
         replies_query = f"""
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            )
             SELECT COUNT(*) as reply_count
-            FROM public."Video" v
-            JOIN public."Comments" c ON c."vId" = v."vId"
-            WHERE v."channel_id" = '{name_to_id[channel_name]}'
-            AND strpos(c."replies", '@{display_name}') > 0
+            FROM public."Channel" ch
+            JOIN public."DailyChannel" dc ON ch.id = dc.channel_id
+            CROSS JOIN latest_date l
+            JOIN public."Video" v ON v."channel_id" = ch."id"
+            JOIN public."Comments" cm ON cm."vId" = v."vId"
+                AND strpos(cm."replies", '@' || ch."DisplayName") > 0
+            WHERE dc.date = l.max_date
+            AND ch."id" = '{name_to_id[channel_name]}'
         """
 
         # # 경쟁 채널들의 평균 대댓글 수
         competitor_replies_query = f"""
-            SELECT COALESCE(AVG(reply_count), 0) as avg_competitor_replies
-            FROM (
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            ),
+            reply_counts AS (
                 SELECT 
                     ch."id",
                     COUNT(*) as reply_count
                 FROM public."Channel" ch
+                JOIN public."DailyChannel" dc ON ch.id = dc.channel_id
+                CROSS JOIN latest_date l
                 JOIN public."Video" v ON v."channel_id" = ch."id"
                 JOIN public."Comments" cm ON cm."vId" = v."vId"
                     AND strpos(cm."replies", '@' || ch."DisplayName") > 0
-                WHERE CAST(ch."subscriberCount" AS FLOAT) 
+                WHERE dc.date = l.max_date
+                AND CAST(dc."totalSubscriberCount" AS FLOAT) 
                 BETWEEN CAST({subscriber_count} AS FLOAT) - 500000 AND CAST({subscriber_count} AS FLOAT) + 500000
                 AND ch."id" != '{name_to_id[channel_name]}'
                 GROUP BY ch."id"
-            ) subquery
+            )
+            SELECT COALESCE(AVG(reply_count), 0) as avg_competitor_replies
+            FROM reply_counts
         """
 
         # 최종 메트릭
