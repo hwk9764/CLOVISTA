@@ -255,7 +255,11 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
 
             # 기사가 있으면 링크 나열
             if controversy['기사화 여부']:
-                articles = [{"article_title": title, "article_link": link} for title, link in controversy['기사 링크']]
+                articles = {
+                    f"기사 링크 {index + 1}": f"{item[0]} ({item[1]})"
+                    for index, item in enumerate(controversy['기사 링크'])
+                    if isinstance(item, list) and len(item) == 2
+                }
                 controversy_article = {
                     "message": "이 사건은 논란이 확산되자 기사화되었습니다. 다음은 관련 기사들의 목록입니다:",
                     "articles": articles
