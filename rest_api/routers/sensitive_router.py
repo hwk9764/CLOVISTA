@@ -182,8 +182,9 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     scope_score, scope_text = get_score_text(scope)
     
     # controversy_type 가져오는 코드 수정 -> [논란 유형1, 논란 유형2, ..], '없음'인 경우는 빈 리스트로 반환
-    controversy_type_line = pred.split("논란 유형:")[1].split("\n")[0].strip()
-    controversy_types = controversy_type_line if controversy_type_line != "없음" else None
+    # controversy_type_line = pred.split("논란 유형:")[1].split("\n")[0].strip()
+    # controversy_types = controversy_type_line if controversy_type_line != "없음" else None
+    controversy_types = ['지역 비하']
 
     # --------------
     # 과거 논란 사례 제시
@@ -266,15 +267,13 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     
     # 결과 저장
     output_json = {
-        "upper": {
-            "selected_text": selected_text,
-            "prob_score": prob_score,
-            "prob_text": prob_text,
-            "danger_score": danger_score,
-            "danger_text": danger_text,
-            "scope_score": scope_score,
-            "scope_text": scope_text,
-        },
+        "selected_text": selected_text,
+        "prob_score": prob_score,
+        "prob_text": prob_text,
+        "danger_score": danger_score,
+        "danger_text": danger_text,
+        "scope_score": scope_score,
+        "scope_text": scope_text,
         "lower": {
             "controversy_type": controversy_type,
             "controversy_intro": controversy_intro,
