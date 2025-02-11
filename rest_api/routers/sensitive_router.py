@@ -199,8 +199,7 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     result_df = df
     
     if not controversy_types:
-        # controversy_types가 빈 리스트일 경우, result_df를 빈 데이터프레임으로 초기화
-        result_df = pd.DataFrame(columns=df.columns)
+        return None
     else:
         for controversy_type in controversy_types:
             if controversy_type == '성적 발언':
@@ -209,7 +208,7 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
                 result_df = result_df[result_df['논란 유형'].str.contains(controversy_type, na=False)]
 
     if result_df.empty:
-        controversy_intro = {"message": "이 스크립트에는 과거에 유사했던 논란 사례가 없습니다."}
+        return None
     else:
         # 검색된 사례들의 대분류와 논란 유형 수집
         categories = set()
@@ -236,6 +235,7 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
             
             # 논란 카테고리 및 세부 유형, 영상 내용 설명
             detail = {
+                "논란명": controversy['논란 내용'],
                 "논란 카테고리": controversy['대분류'],
                 "논란 세부유형": controversy['논란 유형'],
                 "영상 내용": controversy['영상 내용']
