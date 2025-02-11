@@ -162,9 +162,7 @@ const SenseResult = () => {
             <div className='similar-past-cases'>
               <h1>과거 유사사례</h1>
               <span className="sense-keywords-container">
-                {lower.controversy_type
-                  .split(",")
-                  .map((keyword, index) => (
+                {lower.controversy_types.map((keyword, index) => (
                     <div key={index} className="sense-keyword-bubble">
                       {keyword.trim()}
                     </div>
