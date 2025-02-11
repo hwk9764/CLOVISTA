@@ -7,6 +7,7 @@
     max-width: 900px;
     margin: 20px auto;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    gap: 20px;
 }
 
 /* 상단 컨테이너 */
@@ -35,10 +36,9 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 12px;
     padding: 20px;
-    height: 265px;
+    height: 150px;
     overflow-y: auto;
     scrollbar-width: none;
-    margin-bottom: 20px;
 }
 
 .sense-similar-case-card {
@@ -227,9 +227,9 @@
     top: 20px;
     right: 20px;
     display: inline-block;
-  }
-  
-  .sense-explanation-hover {
+}
+
+.sense-explanation-hover {
     visibility: hidden;
     width: 190px;
     background-color: #f2f2f2;
@@ -239,25 +239,67 @@
     border-radius: 8px;
     position: absolute;
     z-index: 1;
-    bottom: 120%; /* 화살표 이미지 위로 */
+    bottom: 120%;
+    /* 화살표 이미지 위로 */
     left: 50%;
     transform: translateX(-50%);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     font-size: 14px;
-  }
-  
-  .sense-explanation-hover::after {
+}
+
+.sense-explanation-hover::after {
     content: '';
     position: absolute;
-    top: 100%; /* 말풍선 아래쪽에 화살표 표시 */
+    top: 100%;
+    /* 말풍선 아래쪽에 화살표 표시 */
     left: 50%;
     transform: translateX(-50%);
     border-width: 5px;
     border-style: solid;
     border-color: #f2f2f2 transparent transparent transparent;
-  }
-  
-  .sense-exclamation-wrapper:hover .sense-explanation-hover {
+}
+
+.sense-exclamation-wrapper:hover .sense-explanation-hover {
     visibility: visible;
-  }
-  
+}
+
+.similar-past-details,
+.similar-past-cases {
+    background-color: white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+/* 키워드 버블 */
+.sense-keyword-bubble {
+    padding: 8px 12px;
+    background-color: #edf2f7;
+    color: #2d3748;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 15px;
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.sense-keyword-bubble:hover {
+    transform: scale(1.1);
+    background-color: #cbd5e0;
+}
+
+.sense-keywords-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 300px;
+}
+
+.sensitive_speeches,
+.controversy-detail-card{
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
