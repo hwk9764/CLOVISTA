@@ -127,7 +127,9 @@ const Sense = () => {
             <p className="upload-success">✅ {file.name} <br /> 업로드 완료!</p>
           ) : (
             <>
-              <p>눈금 아래로 영상을 드래그 앤 드롭하거나 버튼을 클릭하세요.</p>
+              <p>눈금 아래로 영상을 드래그 앤 드롭하거나 버튼을 클릭하세요.<br/><br/>
+              ex) 탁재훈_니콜.mp4
+              </p>
               <input
                 type="file"
                 accept="video/mp4, video/mov, video/wmv, video/avi, audio/mp3"

@@ -18,11 +18,13 @@ const MainPage = () => {
 
   return (
     <div className="main-container">
-      <h1>Hyper CLOVA X를 통한 여러 인사이트를 경험해보세요!</h1>
-      <p>Choose your Service</p>
+      <div className='main-title-container'>
+        <h1>Hyper CLOVA X를 통한 여러 인사이트를 경험해보세요!</h1>
+        <p>서비스를 선택해주세요!</p>
+      </div>
       <div className="services">
         <ServiceCard
-          title="맞춤형 채널 정책성 진단받아보기"
+          title="맞춤형 채널 정체성 진단받아보기"
           description="유튜브 채널 운영을 위한 정책적 방향을 진단받아보세요."
           link='/main/identity'
         />

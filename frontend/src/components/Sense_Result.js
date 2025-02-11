@@ -173,57 +173,59 @@ const SenseResult = () => {
             {lower.controversy_intro.message?.split("\n").map((line, index) => (
               <p key={index}>{line}</p>
             ))}
-          </div>
 
-          {/* 과거 유사사례 details */}
-          <div className='similar-past-details'>
-            {lower?.controversy_details?.map((detail, index) => (
-              <div key={index} className="controversy-group">
-                <div className="controversy-detail-card">
-                  <h1>{detail["논란명"]}</h1>
-                  {/* <p><strong>카테고리:</strong> {}</p> */}
-                  <span className="sense-keywords-container">
-                    {detail["논란 카테고리"] &&
-                      detail["논란 카테고리"]
-                        .split(",")
-                        .map((keyword, index) => (
-                          <div key={index} className="sense-keyword-bubble">
-                            {keyword.trim()}
-                          </div>
-                        ))}
-                  </span>
-                  <p><strong>세부 유형:</strong> </p>
-                  <p>{detail["논란 세부유형"]}</p>
-                  <p><strong>영상 내용:</strong></p>
-                  <p>{detail["영상 내용"]}</p>
-                  <p><strong>문제 발언 사례:</strong></p>
-                  <div className='sensitive_speeches'>
-                    {lower.sensitive_speeches[index]["문제 발언"].map((statement, idx) => (
-                      <p key={idx}>{statement}</p>
-                    ))}
+
+            {/* 과거 유사사례 details */}
+              {lower?.controversy_details?.map((detail, index) => (
+                <div key={index} className="controversy-group">
+                  <div className="controversy-detail-card">
+                    <h1>{detail["논란명"]}</h1>
+                    {/* <p><strong>카테고리:</strong> {}</p> */}
+                    <span className="sense-keywords-container">
+                      {detail["논란 카테고리"] &&
+                        detail["논란 카테고리"]
+                          .split(",")
+                          .map((keyword, index) => (
+                            <div key={index} className="sense-keyword-bubble">
+                              {keyword.trim()}
+                            </div>
+                          ))}
+                    </span>
+                    <p><strong>세부 유형:</strong> </p>
+                    <p>{detail["논란 세부유형"]}</p>
+                    <p><strong>영상 내용:</strong></p>
+                    <p>{detail["영상 내용"]}</p>
+                    <p><strong>문제 발언 사례:</strong></p>
+                    <div className='sensitive_speeches'>
+                      {lower.sensitive_speeches[index]["문제 발언"].map((statement, idx) => (
+                        <p key={idx}>{statement}</p>
+                      ))}
+                    </div>
+                    <p><strong>발언의 부적절성:</strong></p>
+                    <p>{lower.sensitive_speeches[index]["발언의 부적절성"]}</p>
+                    <p><strong>관련 기사:</strong></p>
+                    <p>{lower.controversy_articles[index]["message"]}</p>
+
+                    {Object.values(lower.controversy_articles[index]["articles"]).map((value, idx) => {
+                      // 괄호와 괄호 안의 내용을 제거
+                      const newsTitle = value.replace(/\s*\(.*?\)\s*$/, '');
+
+                      return (
+                        <p key={idx}>
+                          <a href={value.match(/\((.*?)\)/)?.[1] || '#'} target="_blank" rel="noopener noreferrer">
+                            {newsTitle}
+                          </a>
+                        </p>
+                      );
+                    })}
+
+
                   </div>
-                  <p><strong>발언의 부적절성:</strong></p>
-                  <p>{lower.sensitive_speeches[index]["발언의 부적절성"]}</p>
-                  <p><strong>관련 기사:</strong></p>
-                  <p>{lower.controversy_articles[index]["message"]}</p>
-                  {Object.values(lower.controversy_articles[index]["articles"]).map((value, idx) => {
-                    // 괄호와 괄호 안의 내용을 제거
-                    const newsTitle = value.replace(/\s*\(.*?\)\s*$/, '');
-
-                    return (
-                      <p key={idx}>
-                        <a href={value.match(/\((.*?)\)/)?.[1] || '#'} target="_blank" rel="noopener noreferrer">
-                          {newsTitle}
-                        </a>
-                      </p>
-                    );
-                  })}
-
-
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+
 
 
           <div>
