@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import axios from 'axios';
-import Loader from "./Loader"
+import Loader from "./Loader";
 import './Swot_Engagement.css';
 import {
   Chart as ChartJS,

@@ -40,13 +40,11 @@ const SwotPage = () => {
             {/* 종합 분석 결과 */}
             <div className="summary-box">
                 <h1>종합 분석 결과</h1>
-                <div className="analysis-wrapper">
-                    {total_info ? (
-                        <div className="analysis-box">{total_info}</div>
-                    ) : (
-                        <p>Loading...</p>
-                    )}
-                </div>
+                {total_info ? (
+                    <div className="analysis-box">{total_info}</div>
+                ) : (
+                    <p>Loading...</p>
+                )}
             </div>
 
             {/* 서비스 카드 */}
@@ -55,25 +53,28 @@ const SwotPage = () => {
                     title="채널 성과 분석결과"
                     description="조회수, 구독자 증가율, 노출 클릭률 등 채널의 전반적인 성과를 분석 받아보세요."
                     link="/main/Swot/Performance"
+                    imgSrc='/performance.png'
                 />
 
                 <ServiceCard
                     title="시청자 참여도 분석결과"
                     description="좋아요, 댓글, 공유 등 시청자들의 참여도를 분석받아보세요."
                     link="/main/Swot/Engagement"
+                    imgSrc='/engagement.png'
                 />
 
                 <ServiceCard
                     title="채널 수익성 분석결과"
                     description="광고 수익, 광고 영상의 마케팅 영향력 등 채널의 수익성에 대한 분석받아보세요."
                     link="/main/Swot/Revenue"
+                    imgSrc='/revenue.png'
                 />
             </div>
         </div>
     );
 };
 
-const ServiceCard = ({ title, description, link }) => {
+const ServiceCard = ({ title, description, link , imgSrc}) => {
     const navigate = useNavigate();
 
     const handleClick = () => {
@@ -85,8 +86,8 @@ const ServiceCard = ({ title, description, link }) => {
     return (
         <div className="service-card" onClick={handleClick} style={{ cursor: 'pointer' }}>
             <h3>{title}</h3>
+            <img src={imgSrc}></img>
             <p>{description}</p>
-            <button className="detail-button">자세한 분석결과 보러가기</button>
         </div>
     );
 };

@@ -1,52 +1,49 @@
 .identity-container {
-  max-width: 850px;
-  margin: 30px auto;
-  text-align: center;
+  background-color: white;
   position: relative;
-}
-
-/* ✅ 중앙 정렬된 버튼 + 제목 */
-.center-content {
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
+  gap: 20px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 15px; /* 🔹 버튼과 제목 사이 간격 추가 */
 }
 
-/* 설문조사 다시하기 버튼 */
-.retry-button {
+.center-content {
+  display: flex;
+  justify-content: flex-start;
+  /* 왼쪽 정렬 */
+  align-items: center;
+  /* 버튼 높이 정렬 */
+  width: 100%;
+  /* 전체 너비 차지 */
+  padding-left: 0;
+  /* 왼쪽 여백 없음 */
+}
+
+.main-retry-button {
   padding: 12px 24px;
   font-size: 18px;
   font-weight: bold;
-  background-color: #28a745;
+  background-color: #4caf50;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background 0.3s ease-in-out;
 }
 
-.retry-button:hover {
-  background-color: #218838;
+.main-retry-button:hover {
+  background-color: #388e3c;
 }
 
-/* 정체성 평가 결과 제목 */
-.identity-title {
-  font-size: 22px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 10px;
-}
 
-/* ✅ 정체성 평가 결과 박스 */
-.identity-result {
-  position: relative; /* 🔹 블러 오버레이와 겹칠 수 있도록 설정 */
-  width: 100%;
-  min-height: 250px;
-  border: 2px solid black;
-  background: #f9f9f9;
+.main-identity-result {
+  position: relative;
+  /* 🔹 블러 오버레이와 겹칠 수 있도록 설정 */
+  background-color: white;
   padding: 20px;
   border-radius: 10px;
+  box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
   text-align: left;
   line-height: 1.6;
   font-size: 16px;
@@ -57,20 +54,23 @@
 /* ✅ 블러 오버레이 (설문 미완료 시) */
 .overlay {
   position: absolute;
-  top: 50%; /* 🔹 중앙 정렬 */
+  top: 50%;
+  /* 🔹 중앙 정렬 */
   left: 55%;
   transform: translate(-50%, -50%);
   width: 200%;
   height: 120%;
   background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(6px); /* 🔹 블러 효과 강화 */
+  backdrop-filter: blur(6px);
+  /* 🔹 블러 효과 강화 */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 15px;
   border-radius: 10px;
-  z-index: 10; /* 🔹 블러를 최상위로 배치 */
+  z-index: 10;
+  /* 🔹 블러를 최상위로 배치 */
 }
 
 /* 블러 내부 텍스트 */
@@ -96,39 +96,20 @@
   background-color: #0056b3;
 }
 
-/* ✅ 콘텐츠 추천 결과 제목 */
-.recommend-title {
-  font-size: 20px;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 40px; /* 🔹 정체성 평가 결과 박스와의 간격 */
-  margin-bottom: 10px;
-}
-
-.recommend-box {
-  width: 100%;
-  min-height: 400px;
-  border: 2px solid black;
-  border-radius: 10px;
+.main-recommend-box {
+  position: relative;
+  border-radius: 12px;
   background: white;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* 🔹 왼쪽 정렬 */
-  flex-direction: column; /* 🔹 위에서 아래로 정렬 */
   font-size: 16px;
-  padding: 15px;
+  padding: 20px;
   text-align: left;
-  line-height: 1.5;
+  line-height: 1.6;
   box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   margin-top: 20px;
-  white-space: pre-line; /* 🔹 줄바꿈 적용 */
+  white-space: pre-line;
+  /* 🔹 줄바꿈 적용 */
 }
-
-/* ✅ 줄바꿈 정상 적용 */
-.recommend-text {
-  width: 100%;
-  display: block;
-  white-space: pre-line; /* 🔹 텍스트 내 개행 처리 */
+.main-recommend-box h2{
+  text-align: left;
 }
-

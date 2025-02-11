@@ -158,29 +158,27 @@ const SenseResult = () => {
           </div>
 
           {/* 과거 유사사례 시작점 */}
-          <div className='similar-past-cases'>
-            <h1>과거 유사사례</h1>
-            <span className="sense-keywords-container">
-              {lower &&
-                lower.controversy_type
+          {lower && (
+            <div className='similar-past-cases'>
+              <h1>과거 유사사례</h1>
+              <span className="sense-keywords-container">
+                {lower.controversy_type
                   .split(",")
                   .map((keyword, index) => (
                     <div key={index} className="sense-keyword-bubble">
                       {keyword.trim()}
                     </div>
                   ))}
-            </span>
-            {lower.controversy_intro.message?.split("\n").map((line, index) => (
-              <p key={index}>{line}</p>
-            ))}
+              </span>
+              {lower.controversy_intro.message?.split("\n").map((line, index) => (
+                <p key={index}>{line}</p>
+              ))}
 
-
-            {/* 과거 유사사례 details */}
-              {lower?.controversy_details?.map((detail, index) => (
+              {/* 과거 유사사례 details */}
+              {lower.controversy_details?.map((detail, index) => (
                 <div key={index} className="controversy-group">
                   <div className="controversy-detail-card">
                     <h1>{detail["논란명"]}</h1>
-                    {/* <p><strong>카테고리:</strong> {}</p> */}
                     <span className="sense-keywords-container">
                       {detail["논란 카테고리"] &&
                         detail["논란 카테고리"]
@@ -191,7 +189,7 @@ const SenseResult = () => {
                             </div>
                           ))}
                     </span>
-                    <p><strong>세부 유형:</strong> </p>
+                    <p><strong>세부 유형:</strong></p>
                     <p>{detail["논란 세부유형"]}</p>
                     <p><strong>영상 내용:</strong></p>
                     <p>{detail["영상 내용"]}</p>
@@ -218,15 +216,11 @@ const SenseResult = () => {
                         </p>
                       );
                     })}
-
-
                   </div>
                 </div>
               ))}
             </div>
-
-
-
+          )}
 
           <div>
 

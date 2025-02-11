@@ -74,7 +74,7 @@ const SurveyChatbot = () => {
 
       newMessages.push({ sender: "bot", text: "설문이 완료되었습니다! 감사합니다. 😊" });
 
-      setTimeout(() => navigate("/main"), 2000);
+      setTimeout(() => navigate("/main/identity"), 2000);
     }
 
     setMessages(newMessages);
