@@ -25,27 +25,43 @@ const MainPage = () => {
       <div className="services">
         <ServiceCard
           title="맞춤형 채널 정체성 진단받아보기"
-          description="유튜브 채널 운영을 위한 정책적 방향을 진단받아보세요."
+          description="신규 크리에이터라면, 
+Hyper CLOVA X 챗봇과의 대화를 통해 
+본인만의 채널정체성을 받아보세요. 
+목표한 타겟층을 위해 어떤 방향으로 채널을 키워나갈지 방향성을 제공받아보세요!"
           link='/main/identity'
+          imgSrc='/channel_identity.png'
         />
         {hasYouTubeChannel && (
           <ServiceCard
             title="내 유튜브 채널 SWOT 분석 받기"
-            description="채널의 강점, 약점, 기회, 위협 요인을 분석해보세요."
+            description="기존 크리에이터라면,
+Hyper CLOVA X의 자료 분석을 통해
+채널 분석을 받아보세요.
+여러 지표에 대한 채널의 장,단점, 이를 
+극복할 여러 기회 방법을 제공받아보세요!"
             link='/main/Swot'
+            imgSrc='/channel_swot.png'
+
           />
         )}
         <ServiceCard
           title="영상 업로드 전 민감도 분석하기"
-          description="영상이 업로드되기 전 민감도를 확인해보세요."
+          description="영상 업로드전이라면,
+Hyper CLOVA X의 민감도 분석을 통해
+영상을 검사 받아보세요.
+영상에서 발생할 수 있는 논란을 
+카테고리에 맞춤형으로 검토받아보세요!"
           link='/main/sense'
+          imgSrc='/video_analysis.png'
+
         />
       </div>
     </div>
   );
 };
 
-const ServiceCard = ({ title, description, link }) => {
+const ServiceCard = ({ title, description, link, imgSrc }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -57,7 +73,14 @@ const ServiceCard = ({ title, description, link }) => {
   return (
     <div className="service-card" onClick={handleClick} style={{ cursor: 'pointer' }}>
       <h3>{title}</h3>
-      <p>{description}</p>
+      <img src={imgSrc}></img>
+      
+      <p>{description.split("\n").map((line, index) => (
+        <React.Fragment key={index}>
+          {line}
+          <br />
+        </React.Fragment>
+      ))}</p>
     </div>
   );
 };

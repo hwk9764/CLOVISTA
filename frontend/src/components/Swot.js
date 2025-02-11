@@ -40,13 +40,11 @@ const SwotPage = () => {
             {/* 종합 분석 결과 */}
             <div className="summary-box">
                 <h1>종합 분석 결과</h1>
-                <div className="analysis-wrapper">
-                    {total_info ? (
-                        <div className="analysis-box">{total_info}</div>
-                    ) : (
-                        <p>Loading...</p>
-                    )}
-                </div>
+                {total_info ? (
+                    <div className="analysis-box">{total_info}</div>
+                ) : (
+                    <p>Loading...</p>
+                )}
             </div>
 
             {/* 서비스 카드 */}
