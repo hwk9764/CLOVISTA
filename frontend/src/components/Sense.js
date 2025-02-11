@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PopupGuide from "./PopupGuide";
 import axios from 'axios';
 import './Sense.css';
 
@@ -46,8 +45,10 @@ const Sense = () => {
       return;
     }
     const formData = new FormData();
-    formData.append('file', file, file.name);
-    formData.append('category', selectedCategory); // 선택한 카테고리 추가
+    formData.append('user_id', userID);  // ✅ user_id를 FormData에 추가
+    formData.append('category', selectedCategory);  // ✅ category 추가
+    formData.append('file', file, file.name);  // ✅ file 추가
+    
 
     //FormData 내용
     console.log("🔍 FormData 내용:");
@@ -57,12 +58,12 @@ const Sense = () => {
     
     try {
       const response = await axios.post(
-        `http://10.28.224.177:30635/sensitive/analysis/?user_id=${userID}`,
+        `http://10.28.224.177:30635/sensitive/analysis/`,
         formData,
         {
           headers: {
-            'accept': 'application/json',
-            'Content-Type': 'multipart/form-data'
+            'accept': 'application/json'
+            // 'Content-Type': 'multipart/form-data'
           }
         }
       );
@@ -108,12 +109,6 @@ const Sense = () => {
   return (
     <div className='sense-total-wrapper'>
       <div className="sense-container">
-        {/*pop up page*/}
-        {/* {showPopup && (
-        <PopupGuide
-          onClose={closePopup}
-        />
-      )} */}
         <h2>영상 카테고리를 선택하고 영상을 업로드하세요!</h2>
 
         {/* Drag-and-Drop File Upload Section */}
