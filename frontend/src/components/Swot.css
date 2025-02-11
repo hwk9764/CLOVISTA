@@ -64,6 +64,10 @@
     color: #555;
     margin-bottom: 20px;
 }
+.service-card img{
+    width: 60px;
+    height: 60px;
+}
 
 /* 버튼 스타일 */
 .detail-button {
