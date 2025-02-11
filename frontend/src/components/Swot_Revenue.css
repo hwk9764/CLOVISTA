@@ -56,9 +56,8 @@
   height: auto; 
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* 내부 요소 간 균등 분배 */
+  justify-content: center; /* 내부 요소 간 균등 분배 */
   align-items: center; /* 가운데 정렬 */
-  margin-bottom: 20px; /* 아래 여백 추가 */
 } 
 .revenue_charts-wrapper h3 {
   font-size: 18px;
@@ -68,6 +67,7 @@
 }
 
 .revenue_charts {
+  margin-top: 40px;
   display: flex;
   flex-direction: row;
   justify-content: space-around; /* 그래프 간 간격을 균등 분배 */

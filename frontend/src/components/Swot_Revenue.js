@@ -34,8 +34,8 @@ const SwotRevenue = () => {
 
   const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
   const user_email = currentUser.email;
-  const name_temp= JSON.parse(localStorage.getItem(user_email))||{};
-  const channelName=name_temp.surveyResponses?.channelName;
+  const name_temp = JSON.parse(localStorage.getItem(user_email)) || {};
+  const channelName = name_temp.surveyResponses?.channelName;
 
 
   const [bestAd, setBestAd] = useState(null); // 가장 성적이 좋은 광고 영상 데이터 상태

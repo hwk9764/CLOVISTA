@@ -14,8 +14,10 @@ const Sense = () => {
   const navigate = useNavigate();
 
   // localStorage에서 user 정보 가져오기
-  const userData = JSON.parse(localStorage.getItem("user") || "{}");
-  const userID = encodeURIComponent(userData.name || "unknown"); // name을 id로 사용
+  const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+  const user_email = currentUser.email;
+  const name_temp = JSON.parse(localStorage.getItem(user_email)) || {};
+  const userID = name_temp.name;
 
   // 파일 선택 이벤트 핸들러
   const handleFileUpload = (e) => {
@@ -26,23 +28,33 @@ const Sense = () => {
     }
   };
 
-  // 파일이 설정되었을 때 업로드 시작
   useEffect(() => {
-    if (file) {
+    if (file && selectedCategory) {
       handleFileUploadComplete();
     }
-  }, [file]);
+  }, [file, selectedCategory]); // file과 selectedCategory가 설정된 경우에만 실행
 
-  // 파일 업로드 후 서버로 전송
+
   const handleFileUploadComplete = async () => {
     if (!file) {
       console.error("🚨 파일이 없습니다.");
       return;
     }
-
+    if (!selectedCategory) {  // 카테고리가 선택되지 않았을 경우
+      console.error("🚨 카테고리를 선택해주세요.");
+      alert("⚠️ 카테고리를 선택해주세요!");
+      return;
+    }
     const formData = new FormData();
     formData.append('file', file, file.name);
+    formData.append('category', selectedCategory); // 선택한 카테고리 추가
 
+    //FormData 내용
+    console.log("🔍 FormData 내용:");
+    formData.forEach((value, key) => {
+      console.log(`${key}:`, value);
+    });
+    
     try {
       const response = await axios.post(
         `http://10.28.224.177:30635/sensitive/analysis/?user_id=${userID}`,
@@ -118,7 +130,7 @@ const Sense = () => {
               <p>눈금 아래로 영상을 드래그 앤 드롭하거나 버튼을 클릭하세요.</p>
               <input
                 type="file"
-                accept="video/mp4, video/mov, video/wmv, video/avi"
+                accept="video/mp4, video/mov, video/wmv, video/avi, audio/mp3"
                 onChange={handleFileUpload}
                 id="file-input"
               />
@@ -154,7 +166,7 @@ const Sense = () => {
         </button>
       </div>
       <div className='scroll-image'>
-        <img src='/arrow.gif'/>
+        <img src='/arrow.gif' />
         <p>최근 논란 트렌드와 반복되는 케이스를 확인해보세요!</p>
       </div>
       <div className='recent-trend-explain'>
@@ -269,20 +281,20 @@ const Sense = () => {
         <div className='reapeted_pictures-grid'>
           <h1># 2020년  # 홍정오 아임뚜렛 사건</h1>
           <h1># 2022년  # 우와소 자폐인 희화화 논란</h1>
-          <img src='/example_thumbnail.png'></img>
-          <img src='/example_thumbnail.png'></img>
-          <img src='/example_thumbnail.png'></img>
-          <img src='/example_thumbnail.png'></img>
+          <img src='/new_pic/아임뚜렛1.jpg'></img>
+          <img src='/new_pic/우와소1.jpg'></img>
+          <img src='/new_pic/아임뚜렛3.jpg'></img>
+          <img src='/new_pic/우와소3.jpg'></img>
         </div>
         <p>장애인 관련 논란은 콘텐츠 제작자들이 장애를 희화화하거나 부적절하게 재현하는 과정에서 발생했습니다. 2020년 홍정오의 '아임뚜렛' 사건에서는 투렛 증후군이 없는 제작자가 장애를 연기하며 실제 환자들의 고통을 오락거리로 만들었다는 비판을 받았습니다. 2022년에는 유튜버 우와소가 자폐 스펙트럼 장애를 가진 드라마 캐릭터의 특징적인 말투와 행동을 모방하며 자폐인을 희화화했다는 논란이 일었습니다. 이러한 사례들은 우리 사회가 사회적 약자나 소수자를 다룰 때 특히 높은 수준의 윤리의식을 요구한다는 점을 보여줍니다.</p>
         <h1># 군 복무/군인</h1>
         <div className='reapeted_pictures-grid'>
           <h1># 2022년  # 주르르 군인 비하 논란</h1>
           <h1># 2024년  # 싱글벙글 군인 비하 논란</h1>
-          <img src='/example_thumbnail.png'></img>
-          <img src='/example_thumbnail.png'></img>
-          <img src='/example_thumbnail.png'></img>
-          <img src='/example_thumbnail.png'></img>
+          <img src></img>
+          <img src='/new_pic/싱글벙글1.jpg'></img>
+          <img src='/new_pic/주르르.jpg'></img>
+          <img src='/new_pic/싱글벙글2.jpg'></img>
         </div>
         <p>군 복무 관련 콘텐츠 역시 지속적인 논란의 대상이 되어왔습니다. 2022년 주르르는 국방의 의무를 "국방부 퀘스트"로, 군복을 "레어 의상 득템"으로 표현하며 군인들의 희생과 노력을 경시했다는 비판을 받았습니다. 최근 2024년에는 싱글벙글이 군 관련 사고들을 고려하지 않은 채 군인들의 고통과 불편함을 가볍게 다루는 콘텐츠를 제작해 논란이 되었습니다. 이러한 사례들은 군인들의 노고를 당연하게 여기거나 그들의 수고로움을 충분히 고려하지 못한 발언들이 종종 등장하면서 문제가 되고 있어, 관련 콘텐츠 제작 시 각별한 주의가 필요함을 시사합니다.</p>
       </div>

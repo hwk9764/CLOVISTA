@@ -182,8 +182,9 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     scope_score, scope_text = get_score_text(scope)
     
     # controversy_type 가져오는 코드 수정 -> [논란 유형1, 논란 유형2, ..], '없음'인 경우는 빈 리스트로 반환
-    controversy_type_line = pred.split("논란 유형:")[1].split("\n")[0].strip()
-    controversy_types = controversy_type_line if controversy_type_line != "없음" else None
+    # controversy_type_line = pred.split("논란 유형:")[1].split("\n")[0].strip()
+    # controversy_types = controversy_type_line if controversy_type_line != "없음" else None
+    controversy_types = ['지역 비하']
 
     # --------------
     # 과거 논란 사례 제시
@@ -198,8 +199,7 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     result_df = df
     
     if not controversy_types:
-        # controversy_types가 빈 리스트일 경우, result_df를 빈 데이터프레임으로 초기화
-        result_df = pd.DataFrame(columns=df.columns)
+        return None
     else:
         for controversy_type in controversy_types:
             if controversy_type == '성적 발언':
@@ -208,7 +208,7 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
                 result_df = result_df[result_df['논란 유형'].str.contains(controversy_type, na=False)]
 
     if result_df.empty:
-        controversy_intro = {"message": "이 스크립트에는 과거에 유사했던 논란 사례가 없습니다."}
+        return None
     else:
         # 검색된 사례들의 대분류와 논란 유형 수집
         categories = set()
@@ -235,6 +235,7 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
             
             # 논란 카테고리 및 세부 유형, 영상 내용 설명
             detail = {
+                "논란명": controversy['논란 내용'],
                 "논란 카테고리": controversy['대분류'],
                 "논란 세부유형": controversy['논란 유형'],
                 "영상 내용": controversy['영상 내용']
@@ -254,7 +255,11 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
 
             # 기사가 있으면 링크 나열
             if controversy['기사화 여부']:
-                articles = [{"article_title": title, "article_link": link} for title, link in controversy['기사 링크']]
+                articles = {
+                    f"기사 링크 {index + 1}": f"{item[0]} ({item[1]})"
+                    for index, item in enumerate(controversy['기사 링크'])
+                    if isinstance(item, list) and len(item) == 2
+                }
                 controversy_article = {
                     "message": "이 사건은 논란이 확산되자 기사화되었습니다. 다음은 관련 기사들의 목록입니다:",
                     "articles": articles
@@ -266,15 +271,13 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     
     # 결과 저장
     output_json = {
-        "upper": {
-            "selected_text": selected_text,
-            "prob_score": prob_score,
-            "prob_text": prob_text,
-            "danger_score": danger_score,
-            "danger_text": danger_text,
-            "scope_score": scope_score,
-            "scope_text": scope_text,
-        },
+        "selected_text": selected_text,
+        "prob_score": prob_score,
+        "prob_text": prob_text,
+        "danger_score": danger_score,
+        "danger_text": danger_text,
+        "scope_score": scope_score,
+        "scope_text": scope_text,
         "lower": {
             "controversy_type": controversy_type,
             "controversy_intro": controversy_intro,

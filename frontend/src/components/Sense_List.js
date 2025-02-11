@@ -12,13 +12,16 @@ const SenseList = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userData = JSON.parse(localStorage.getItem("user") || "{}");
-        const userID = encodeURIComponent(userData.name || "unknown");
-        console.log(`http://10.28.224.177:30635/sensitive/result/${userID}`);
+        const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+        const user_email = currentUser.email;
+        const name_temp= JSON.parse(localStorage.getItem(user_email))||{};
+        const userID=name_temp.name;
         const response = await axios.get(
           `http://10.28.224.177:30635/sensitive/result/${userID}`,
           { headers: { accept: "application/json" } }
         );
+
+        console.log(response.data[0])
 
         // 데이터 변환 (임의의 검사 날짜 및 파일 형식 추가)
         const processedData = response.data.map((item, index) => ({

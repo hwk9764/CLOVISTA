@@ -1,17 +1,52 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Swot.css';
+import Loader from "./Loader";
+import axios from 'axios';
+
 
 const SwotPage = () => {
+    const [loading, setLoading] = useState(true);
+    const [total_info, setTotalInfo] = useState(null);
+
+
+    const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+    const user_email = currentUser.email;
+    const name_temp = JSON.parse(localStorage.getItem(user_email)) || {};
+    const channelName = name_temp.surveyResponses?.channelName;
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                console.log(channelName);
+                const uriTotalInfo = `http://10.28.224.177:30635/chatbot/summary/${channelName}`;
+                const channelTotalRes = await axios.get(uriTotalInfo);
+                setTotalInfo(channelTotalRes.data);
+            } catch (error) {
+                console.error("Error fetching data: ", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, [channelName]);
+
+    if (loading) {
+        return <Loader message="데이터를 불러오는 중..." />;
+    }
+
     return (
         <div className="main-container">
             {/* 종합 분석 결과 */}
             <div className="summary-box">
                 <h1>종합 분석 결과</h1>
-                <p>
-                    최근 영상 시청자 중 구독자의 비율이 70%로 높은 편이지만 100%가 아니기 때문에 잡수 구독자의 비율이 어느 정도 있을 것으로 예상됩니다. 하지만 타 유튜브 채널에 비해 낮은 편이므로 크게 문제가 되지 않을 것으로 보입니다.<br />
-                    '한국지리 일타강사 문쌤'이라는 독특한 컨셉으로 인해 경쟁이 심한 코미디 카테고리 내에서도 비교적 우위에 있다고 볼 수 있습니다.
-                </p>
+                <div className="analysis-wrapper">
+                    {total_info ? (
+                        <div className="analysis-box">{total_info}</div>
+                    ) : (
+                        <p>Loading...</p>
+                    )}
+                </div>
             </div>
 
             {/* 서비스 카드 */}
