@@ -116,6 +116,10 @@ def clova_speech_stt(file_path):
     )
     return response.json()
 
+def text_add(prompt, text, genre, title):
+    text_add = f"채널의 장르: {genre}\n스크립트: " + text
+    formatted_prompt = [prompt[0], {"role": "user", "content": prompt[1]["content"].format(text_add)}]
+    return formatted_prompt
 
 @sensitive_router.post("/analysis/")
 async def analysis(user_id: str, file: UploadFile = File(...)):
@@ -146,6 +150,7 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
     all_text_add = f"제목: {title}\n스크립트: " + all_text
     print(all_text_add)
 
+    #formatted_prompt = text_add(PROMPT_sensitive, all_text, genre, title)
     formatted_prompt = [
         PROMPT_sensitive[0],
         {"role": "user", "content": PROMPT_sensitive[1]["content"].format(all_text_add)},
@@ -162,7 +167,41 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
         "seed": 104,
     }
 
-    pred = completion_executor.execute_retry(request_data)
+    #pred = completion_executor.execute_retry(request_data)
+    pred="""1. **키워드 분석**:
+    - 탐지된 키워드 : "노땅", "아줌마"
+    - 장르 맥락: 코미디 프로그램에서 게스트를 놀리는 과정에서 사용된 표현들로 보인다.
+    - 잠재 민감 키워드: "노땅", "아줌마"는 일부 연령층이나 여성에 대한 비하로 여겨질 가능성이 있다.
+
+    2. **톤 분석**:
+        - 문체: 캐주얼하고 유머러스한 톤으로 게스트와 상호작용하며 웃음을 유발한다.
+        - 목적: 엔터테인먼트 및 웃음 유발. 게스트를 놀리는 과정에서 과장된 표현과 유머를 사용한다.
+
+    민감한 문장:
+    1. "다 노땅들이잖아요." (탐지된 키워드/패턴 : "노땅")
+    2. "뭐 하는 거야 아줌마들끼리 모여서" (탐지된 키워드/패턴 : "아줌마")
+
+    논란 유형: 
+    - 특정 집단 및 구성원 비하 (연령층, 여성 관련 발언)
+
+    발생 가능성: 
+    - 점수: 중간 (2(부정적 감정 표현 강도) + 2(주관적 진술 비율) = 4점)
+    - 이유:
+        1. **부정적 감정 표현 강도**: 2/3
+            - 특정 연령층에 대한 비하적 표현이 포함되어 있음(예: "노땅")
+            - 게스트를 대상으로 한 농담의 일부로 사용되어 강도가 약함
+        2. **주관적 진술 비율**: 2/2
+            - 연령층이나 여성에 대한 일반화된 표현이 포함되어 있음
+    - 개선 방안: 게스트를 대상으로 한 농담이라도 특정 집단에 대한 비하로 여겨질 수 있는 표현은 신중히 사용해야 한다.
+
+    심각성: 
+    - 점수: 중간 (2(대상 영향력) + 1(법적/경제적 위험 요소) = 3점)
+    - 이유:
+        1. **대상 영향력/범위**: 2/3
+            - 게스트와 해당 연령층의 일부 시청자들에게 영향을 미칠 수 있음
+        2. **법적/경제적 위험 요소**: 1/3
+            - 심각한 법적 문제를 초래할 가능성은 적음
+    - 개선 방안: 코미디 장르라 하더라도 표현에 주의를 기울여 불쾌감을 줄 수 있는 표현을 최소화하는 것이 좋다."""
     print("민감도 분석 완료")
     print(pred)
 
@@ -173,23 +212,21 @@ async def analysis(user_id: str, file: UploadFile = File(...)):
         text = "\n".join([x.strip() for x in text])
         return score, text
 
-    selected_text = pred.split("민감한 문장 추출:")[1].split("발생 가능성:")[0].strip()
+    selected_text = pred.split("민감한 문장:")[1].split("발생 가능성:")[0].strip()
     prob = pred.split("발생 가능성:")[1].split("심각성:")[0].strip()
     prob_score, prob_text = get_score_text(prob)
-    danger = pred.split("심각성:")[1].split("영향 범위:")[0].strip()
+    danger = pred.split("심각성:")[1].split("영향 범위:")[0].strip()    #  변경
     danger_score, danger_text = get_score_text(danger)
-    scope = pred.split("영향 범위:")[-1].strip()
-    scope_score, scope_text = get_score_text(scope)
     
     # controversy_type 가져오는 코드 수정 -> [논란 유형1, 논란 유형2, ..], '없음'인 경우는 빈 리스트로 반환
-    # controversy_type_line = pred.split("논란 유형:")[1].split("\n")[0].strip()
-    # controversy_types = controversy_type_line if controversy_type_line != "없음" else None
-    controversy_types = ['지역 비하']
+    controversy_type_line = pred.split("논란 유형:")[1].split("\n")[0].strip()
+    controversy_types = controversy_type_line if controversy_type_line != "없음" else None
+    #controversy_types = ['지역 비하']
 
     # --------------
     # 과거 논란 사례 제시
     try:
-        df = pd.read_csv('/data/ephemeral/home/level4-nlp-finalproject-hackathon-nlp-03-lv3/rest_api/routers/Controversy_Cases.csv')
+        df = pd.read_csv('/data/ephemeral/home/sh/level4-nlp-finalproject-hackathon-nlp-03-lv3/rest_api/routers/Controversy_Cases.csv')
         df['민감 발언'] = df['민감 발언'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else None)
         df['기사 링크'] = df['기사 링크'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else None)
 

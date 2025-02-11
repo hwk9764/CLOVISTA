@@ -459,11 +459,19 @@ async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engi
 
         # 크리에이터 댓글 수
         reply_query = f"""
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            )
             SELECT COUNT(*) as reply_count
-            FROM public."Video" v
-            JOIN public."Comments" c ON c."vId" = v."vId"
-            WHERE v."channel_id" = '{name_to_id[channel_name]}'
-            AND strpos(c."replies", '@{display_name}') > 0
+            FROM public."Channel" ch
+            JOIN public."DailyChannel" dc ON ch.id = dc.channel_id
+            CROSS JOIN latest_date l
+            JOIN public."Video" v ON v."channel_id" = ch."id"
+            JOIN public."Comments" cm ON cm."vId" = v."vId"
+                AND strpos(cm."replies", '@' || ch."DisplayName") > 0
+            WHERE dc.date = l.max_date
+            AND ch."id" = '{name_to_id[channel_name]}'
         """
 
         # 경쟁 채널들의 평균 댓글 수
@@ -505,14 +513,21 @@ async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engi
 
         # 댓글 순위 쿼리
         reply_rank_query = f"""
-            WITH reply_counts AS (
+            WITH latest_date AS (
+                SELECT MAX(date) as max_date 
+                FROM public."DailyChannel"
+            ),
+            reply_counts AS (
                 SELECT 
                     ch."id",
                     COUNT(*) as reply_count
                 FROM public."Channel" ch
+                JOIN public."DailyChannel" dc ON ch.id = dc.channel_id
+                CROSS JOIN latest_date l
                 JOIN public."Video" v ON v."channel_id" = ch."id"
                 JOIN public."Comments" cm ON cm."vId" = v."vId"
                     AND strpos(cm."replies", '@' || ch."DisplayName") > 0
+                WHERE dc.date = l.max_date
                 GROUP BY ch."id"
             )
             SELECT COUNT(*) + 1 as reply_rank
@@ -812,7 +827,7 @@ async def analyze_thumbnails(channel_name: str, db_engine=Depends(get_db_engine)
             SELECT *
             FROM thumbnail_metrics
             ORDER BY ctr DESC
-            LIMIT 10
+            LIMIT 3
         """
 
         df = pd.read_sql(thumbnail_query, db_engine)
@@ -865,7 +880,7 @@ async def analyze_upload_pattern(channel_name: str, db_engine=Depends(get_db_eng
                 TO_CHAR(DATE_TRUNC('month', CAST("videoPublishedAt" AS DATE)), 'YYYY-MM') AS month,
                 COUNT(*) AS videocount
             FROM public."Video"
-            WHERE CAST("videoPublishedAt" AS DATE) >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+            WHERE CAST("videoPublishedAt" AS DATE) >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '8 months'
             AND "channel_id" = '{name_to_id[channel_name]}'
             GROUP BY month
             ORDER BY month;
