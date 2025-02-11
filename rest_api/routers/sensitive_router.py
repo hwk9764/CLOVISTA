@@ -3,7 +3,6 @@ import time
 import json
 import requests
 from fastapi import HTTPException, APIRouter, UploadFile, File, Form
-#from prs_cns.prompt import PROMPT_sensitive
 from prompts.sensitivity_prompt import PROMPT_sensitive
 from pydantic import BaseModel
 from typing import List, Optional
