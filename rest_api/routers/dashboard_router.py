@@ -796,6 +796,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
                 ROUND(CAST("videoCTR" AS FLOAT)::numeric, 2) as ctr
             FROM public."Video"
             WHERE "channel_id" = '{name_to_id[channel_name]}'
+            AND CAST("videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
         )
         SELECT 
             "videoTitle" as "제목",
@@ -822,6 +823,7 @@ async def get_channel_performance(channel_name: str, db_engine=Depends(get_db_en
                 ROUND(CAST("videoCTR" AS FLOAT)::numeric, 2) as ctr
             FROM public."Video"
             WHERE "channel_id" = '{name_to_id[channel_name]}'
+            AND CAST("videoPublishedAt" AS TIMESTAMP) >= NOW() - INTERVAL '90 days'
         )
         SELECT 
             "videoTitle" as "제목",
