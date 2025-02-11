@@ -124,36 +124,68 @@ const Performance = () => {
               data: growthData["구독자 그래프"],
               borderColor: "#4CAF50",
               backgroundColor: "rgba(76, 175, 80, 0.2)",
-              fill: true,
-              tension: 0.4,
+              tension: 0,
+              pointRadius: 0, // 데이터 포인트의 원을 제거
             },
           ],
         });
 
-        // 추가된 조회수 변화 데이터 처리
         setViewsChangeChartData({
           labels: growthData["x"], // 날짜
           datasets: [
             {
-              type: "line",
+              type: "bar", // 일일 조회수는 bar 차트로 설정
               label: "일일 조회수",
               data: growthData["조회수 그래프"]["daily"],
-              borderColor: "#4CAF50",
-              backgroundColor: "rgba(76, 175, 80, 0.2)",
-              fill: true,
-              tension: 0.4,
-              yAxisID: "y",
+              backgroundColor: "rgba(76, 175, 80, 0.6)", // 초록색 반투명 바
+              barThickness: 2, // 바의 두께를 얇게 설정
+              yAxisID: "y", // Y축 ID
             },
             {
-              type: "bar",
+              type: "line", // 누적 조회수는 line 차트로 설정
               label: "누적 조회수",
               data: growthData["조회수 그래프"]["total"],
-              backgroundColor: "rgba(255, 159, 64, 0.6)",
-              barThickness: 10,
-              yAxisID: "y1",
+              borderColor: "rgba(255, 99, 132, 1)", // 빨간색 선
+              backgroundColor: "rgba(255, 99, 132, 0.2)", // 선 아래 배경색 (투명도 추가)
+              fill: false, // 누적 조회수는 채우지 않음
+              tension: 0, // 선의 곡률 (직선)
+              pointRadius: 0, // 포인트 제거
+              yAxisID: "y1", // 두 번째 Y축 사용
             },
           ],
+          options: {
+            responsive: true, // 반응형
+            scales: {
+              y: {
+                type: "linear", // 첫 번째 Y축 (일일 조회수)
+                position: "left",
+                beginAtZero: true, // 0부터 시작
+                title: {
+                  display: false, // Y축 제목 숨기기
+                },
+              },
+              y1: {
+                type: "linear", // 두 번째 Y축 (누적 조회수)
+                position: "right",
+                beginAtZero: true, // 0부터 시작
+                grid: {
+                  drawOnChartArea: false, // 두 축의 격자선을 겹치지 않게 설정
+                },
+                title: {
+                  display: false, // Y1축 제목 숨기기
+                },
+              },
+              x: {
+                title: {
+                  display: false, // X축 제목 숨기기
+                },
+              },
+            },
+          },
         });
+
+
+
         // 업로드 주기
         const uploadData = channelFeatureRes.data[0];
         setUploadCycleData({
@@ -373,42 +405,6 @@ const Performance = () => {
             <h3>조회수 변화 그래프</h3>
             <Bar
               data={viewsChangeChartData}
-              options={{
-                responsive: true,
-                plugins: {
-                  legend: {
-                    display: true,
-                    position: "top",
-                  },
-                },
-                scales: {
-                  x: {
-                    title: {
-                      display: true,
-                      text: "날짜", // x축 제목
-                    },
-                  },
-                  y: {
-                    type: "linear",
-                    position: "left",
-                    title: {
-                      display: true,
-                      text: "일일 조회수", // Y축 제목
-                    },
-                  },
-                  y1: {
-                    type: "linear",
-                    position: "right",
-                    title: {
-                      display: true,
-                      text: "누적 조회수", // Y축 제목
-                    },
-                    grid: {
-                      drawOnChartArea: false, // 격자 표시 안함
-                    },
-                  },
-                },
-              }}
             />
           </div>
         )}

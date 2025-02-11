@@ -19,8 +19,10 @@ const SenseResult = () => {
   useEffect(() => {
     const fetchResult = async () => {
       try {
-        const userData = JSON.parse(localStorage.getItem("user") || "{}");
-        const userID = encodeURIComponent(userData.name || "unknown");
+        const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
+        const user_email = currentUser.email;
+        const name_temp = JSON.parse(localStorage.getItem(user_email)) || {};
+        const userID = name_temp.name;
 
         const response = await axios.get(
           `http://10.28.224.177:30635/sensitive/result/${userID}`,
@@ -31,6 +33,7 @@ const SenseResult = () => {
           (item) => item.title === decodeURIComponent(title) && item.status === 1
         );
 
+        console.log(matchedResult)
         if (matchedResult) {
           setResult(matchedResult);
         } else {
@@ -64,100 +67,19 @@ const SenseResult = () => {
 
   return (
     <div className="sense-result-container">
-      
+
       {result ? (
         <>
           {/* 상단 컨테이너 */}
-          <div className="sense-result-header">
-            <div className="sense-title-section">
-              <h2>{result.title}</h2>
-              <div className="sense-selected-text">
-                {result.selected_text?.split("\n").map((line, index) => (
-                  <p key={index}>{line}</p>
-                ))}
-                {/* 엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트
-                엄청 긴 텍스트 테스트 */}
-              </div>
+          <div className="sense-title-section">
+            <h2>{result.title}</h2>
+            <div className="sense-selected-text">
+              {result.selected_text?.split("\n").map((line, index) => (
+                <p key={index}>{line}</p>
+              ))}
             </div>
-            <div className='sense-similar-case-card'>
-              <h2>유사한 과거<br />논란 사례 분석</h2>
-              <img src={'/similar_case_icon.png'} alt="similar_case_pic" className='sense-similar-case-icon' />
-              <p>스크립트를 분석하여 식별된 잠재 논란 요소 중, 과거에 일었던 논란과 유사할 수 있는 사례를 살펴봅니다.</p>
-              <button
-                className="sense-similar-cases-button"
-                onClick={() => navigate('/main/similar-cases')}
-              >
-                보러 가기
-              </button>
-            </div>
-
           </div>
+
 
           {/* 하단 컨테이너 */}
           <div className="sense-result-scores">
@@ -186,7 +108,13 @@ const SenseResult = () => {
                   <span>{result.prob_score}</span>
                 </div>
               </div>
-              <p className="sense-score-text">{result.prob_text}</p>
+              <p className="sense-score-text">  {result.prob_text.split("\n").map((line, index) => (
+                <span key={index}>
+                  {line}
+                  <br /> {/* 줄바꿈 */}
+                  <br /> {/* 줄바꿈 */}
+                </span>
+              ))}</p>
             </div>
 
 
@@ -215,36 +143,15 @@ const SenseResult = () => {
                   <span>{result.danger_score}</span>
                 </div>
               </div>
-              <p className="sense-score-text">{result.danger_text}</p>
+              <p className="sense-score-text">  {result.danger_text.split("\n").map((line, index) => (
+                <span key={index}>
+                  {line}
+                  <br /> {/* 줄바꿈 */}
+                  <br /> {/* 줄바꿈 */}
+                </span>
+              ))}</p>
             </div>
 
-            {/* Scope Score */}
-            <div className="sense-score-wrapper">
-              <h2>영향 범위</h2>
-              <div className="sense-exclamation-wrapper">
-                <img
-                  src="/exclamation.png"
-                  alt="exclamation"
-                  className="sense-exclamation"
-                />
-                <div className="sense-explanation-hover">
-                  논란이 영향을 미칠 대상과 <br/>범위를 측정합니다.
-                </div>
-              </div>
-              <div className="sense-gauge">
-                <div className='sense-gauge-background'></div>
-                <div
-                  className="sense-gauge-arrow"
-                  style={{
-                    transform: `rotate(${calculateRotation(result.scope_score)}deg)`,
-                  }}
-                ></div>
-                <div className="sense-gauge-cover">
-                  <span>{result.scope_score}</span>
-                </div>
-              </div>
-              <p className="sense-score-text">{result.scope_text}</p>
-            </div>
           </div>
         </>
       ) : (

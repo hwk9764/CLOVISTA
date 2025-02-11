@@ -10,9 +10,9 @@ const MainPage = () => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
     const user_email = currentUser.email; // 이메일 문자열 가져오기
     const userInfo = JSON.parse(localStorage.getItem(user_email)) || {};
-    
+
     console.log(userInfo);
-    
+
     setHasYouTubeChannel(userInfo.surveyResponses?.hasChannel === '예');
   }, []);
 

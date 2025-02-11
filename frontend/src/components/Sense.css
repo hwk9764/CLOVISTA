@@ -280,7 +280,11 @@
 .repeated-trend-container h1 {
   font-size: 18px;
 }
-
+.repeated-trend-container img { 
+  margin-top: 20px;
+  max-width: 400px;
+  border-radius: 12px;
+}
 .reapeted_pictures-grid {
   background-color: white;
   border-radius: 12px;
