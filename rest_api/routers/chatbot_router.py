@@ -4,6 +4,21 @@ import pandas as pd
 import json
 import psycopg2
 from typing import Dict, Any
+from prompts.prs_cns_prompt import (PROMPT_revenue, PROMPT_engagement, PROMPT_communication,
+                                    PROMPT_targeting, PROMPT_popular_videos, PROMPT_thumbnail,
+                                    PROMPT_upload_pattern, PROMPT_activity, PROMPT_summary)
+        
+prompts = {
+    'revenue': PROMPT_revenue,
+    'engagement': PROMPT_engagement,
+    'communication': PROMPT_communication,
+    'targeting': PROMPT_targeting,
+    'popular_videos': PROMPT_popular_videos,
+    'thumbnail': PROMPT_thumbnail,
+    'upload_pattern': PROMPT_upload_pattern,
+    'activity': PROMPT_activity,
+    'summary' : PROMPT_summary
+}
 
 chatbot_router = APIRouter()
 
@@ -14,22 +29,6 @@ class CompletionExecutor:
         self._request_id = "309fa53d16a64d7c9c2d8f67f74ac70d"
 
     def execute(self, prompt_type: str, metrics: Dict[str, Any], max_tokens: int = 150):
-        from prs_cns.prompt import (PROMPT_revenue, PROMPT_engagement, PROMPT_communication,
-                                    PROMPT_targeting, PROMPT_popular_videos, PROMPT_thumbnail,
-                                    PROMPT_upload_pattern, PROMPT_activity, PROMPT_summary)
-        
-        prompts = {
-            'revenue': PROMPT_revenue,
-            'engagement': PROMPT_engagement,
-            'communication': PROMPT_communication,
-            'targeting': PROMPT_targeting,
-            'popular_videos': PROMPT_popular_videos,
-            'thumbnail': PROMPT_thumbnail,
-            'upload_pattern': PROMPT_upload_pattern,
-            'activity': PROMPT_activity,
-            'summary' : PROMPT_summary
-        }
-        
         prompt = prompts[prompt_type]
         formatted_prompt = [
             prompt[0],

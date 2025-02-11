@@ -2,15 +2,15 @@ import os
 import time
 import json
 import requests
-from fastapi import HTTPException, APIRouter, UploadFile, File
-from prs_cns.prompt import PROMPT_sensitive
+from fastapi import HTTPException, APIRouter, UploadFile, File, Form
+#from prs_cns.prompt import PROMPT_sensitive
+from prompts.sensitivity_prompt import PROMPT_sensitive
 from pydantic import BaseModel
 from typing import List, Optional
 import pandas as pd
 import ast
 
 sensitive_router = APIRouter()
-
 
 class CompletionExecutor:
     def __init__(self, host, api_key, request_id):
@@ -76,7 +76,6 @@ completion_executor = CompletionExecutor(
 @sensitive_router.get("/result/{user_id}")
 async def result(user_id: str):
     # 파일 확인
-    #user_id = "test"
     upload_dir = f"./uploads/{user_id}"
     files = os.listdir(upload_dir)
     title = [x.split(".")[0] for x in files]
@@ -122,7 +121,7 @@ def text_add(prompt, text, genre):
     return formatted_prompt
 
 @sensitive_router.post("/analysis/")
-async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
+async def analysis(user_id: str = Form(...), category: str = Form(...), file: UploadFile = File(...)):
     # 확장자 체크
     if file.filename.split(".")[-1] not in ["mp3", "mp4"]:
         raise HTTPException(status_code=400, detail="mp3, mp4 확장자로 올려주세요.")
@@ -164,16 +163,16 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
     }
 
     #pred = completion_executor.execute_retry(request_data)
-    pred="""1. 키워드 분석:
+    pred="""1. 키워드 분석: 
     - 탐지된 키워드 : "노땅", "아줌마"
     - 장르 맥락: 코미디 프로그램에서 게스트를 놀리는 과정에서 사용된 표현들로 보인다.
     - 잠재 민감 키워드: "노땅", "아줌마"는 일부 연령층이나 여성에 대한 비하로 여겨질 가능성이 있다.
 
-    2. 톤 분석:
+    2. 톤 분석: 
         - 문체: 캐주얼하고 유머러스한 톤으로 게스트와 상호작용하며 웃음을 유발한다.
         - 목적: 엔터테인먼트 및 웃음 유발. 게스트를 놀리는 과정에서 과장된 표현과 유머를 사용한다.
 
-    민감한 문장:
+    민감한 문장: 
     1. "다 노땅들이잖아요." (탐지된 키워드/패턴 : "노땅")
     2. "뭐 하는 거야 아줌마들끼리 모여서" (탐지된 키워드/패턴 : "아줌마")
 
@@ -182,7 +181,7 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
 
     발생 가능성: 
     - 점수: 높음 (2(부정적 감정 표현 강도) + 2(주관적 진술 비율) = 4점)
-    - 이유:
+    - 이유: 
         1. 부정적 감정 표현 강도: 2/3
             - 특정 연령층에 대한 비하적 표현이 포함되어 있음(예: "노땅")
             - 장르 특성상 게스트를 대상으로 한 농담의 일부로 여겨질 가능성이 있음.
@@ -192,7 +191,7 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
 
     심각성: 
     - 점수: 중간 (2(대상 영향력) + 1(법적/경제적 위험 요소) = 3점)
-    - 이유:
+    - 이유: 
         1. 대상 영향력/범위: 2/3
             - 게스트와 해당 연령층의 일부 시청자들에게 영향을 미칠 수 있음
         2. 법적/경제적 위험 요소: 1/3
@@ -208,15 +207,16 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
         text = "\n".join([x.strip() for x in text])
         return score, text
 
-    selected_text = pred.split("민감한 문장:")[1].split("발생 가능성:")[0].strip()
-    prob = pred.split("발생 가능성:")[1].split("심각성:")[0].strip()
+    selected_text = pred.split("민감한 문장: ")[1].split("발생 가능성: ")[0].strip()
+    prob = pred.split("발생 가능성: ")[1].split("심각성: ")[0].strip()
     prob_score, prob_text = get_score_text(prob)
-    danger = pred.split("심각성:")[1].split("영향 범위:")[0].strip()    #  변경
+    danger = pred.split("심각성: ")[1].split("영향 범위: ")[0].strip()    #  변경
     danger_score, danger_text = get_score_text(danger)
     
     # controversy_type 가져오는 코드 수정 -> [논란 유형1, 논란 유형2, ..], '없음'인 경우는 빈 리스트로 반환
-    controversy_type_line = pred.split("논란 유형:")[1].split("\n")[1].split("(")[0].strip()
-    controversy_types = controversy_type_line if controversy_type_line != "없음" else None
+    controversy_type_line = pred.split("논란 유형: ")[1].split("발생 가능성:")[0].split('\n')
+    controversy_type_line = [text.split('-')[1].strip().split('(')[0].strip() for text in controversy_type_line if text.strip() != '']
+    controversy_types = None if len(controversy_type_line)==1 and controversy_type_line[0] == "없음" else controversy_type_line
 
     # --------------
     # 과거 논란 사례 제시
@@ -229,18 +229,15 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
         print("Failed to load CSV:", e)
     
     result_df = df
-    
-    if not controversy_types:
-        return None
-    else:
+    if controversy_types:
         for controversy_type in controversy_types:
-            if controversy_type == '성적 발언':
+            if'성적 발언' in controversy_type:
                 result_df = result_df[result_df['논란 유형'] == '성 상품화']
             else:
                 result_df = result_df[result_df['논란 유형'].str.contains(controversy_type, na=False)]
-
-    if result_df.empty:
-        return None
+                
+    if result_df.empty: # 뽑아낸 논란 유형이 csv에 없음
+        lower = None    # 유사사례 나타내지 않음
     else:
         # 검색된 사례들의 대분류와 논란 유형 수집
         categories = set()
@@ -299,6 +296,14 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
             else:
                 controversy_article = {"message": "이 사건에 대한 기사화된 내용은 없습니다."}
             controversy_articles.append(controversy_article)
+            
+        lower = {
+            "controversy_types": controversy_types,
+            "controversy_intro": controversy_intro,
+            "controversy_details": details,
+            "sensitive_speeches": sensitive_speeches,
+            "controversy_articles": controversy_articles
+        }
     # --------------
     
     # 결과 저장
@@ -308,14 +313,7 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
         "prob_text": prob_text,
         "danger_score": danger_score,
         "danger_text": danger_text,
-        "lower": {
-            "controversy_type": controversy_type,
-            "controversy_intro": controversy_intro,
-            "controversy_details": details,
-            "sensitive_speeches": sensitive_speeches,
-            "controversy_articles": controversy_articles
-        }
-
+        "lower": lower
     }
     with open(upload_dir + "/" + title + ".json", "w") as json_file:
         json.dump(output_json, json_file, ensure_ascii=False, indent=4)
