@@ -221,7 +221,7 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
     # --------------
     # 과거 논란 사례 제시
     try:
-        df = pd.read_csv('/data/ephemeral/home/sh/level4-nlp-finalproject-hackathon-nlp-03-lv3/rest_api/routers/Controversy_Cases.csv')
+        df = pd.read_csv('/data/ephemeral/home/level4-nlp-finalproject-hackathon-nlp-03-lv3/rest_api/routers/Controversy_Cases.csv')
         df['민감 발언'] = df['민감 발언'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else None)
         df['기사 링크'] = df['기사 링크'].apply(lambda x: ast.literal_eval(x) if pd.notna(x) else None)
 
@@ -231,7 +231,7 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
     result_df = df
     
     if not controversy_types:
-        return None
+        result_df = pd.DataFrame(columns=df.columns)
     else:
         for controversy_type in controversy_types:
             if controversy_type == '성적 발언':
@@ -240,7 +240,18 @@ async def analysis(user_id: str, category: str, file: UploadFile = File(...)):
                 result_df = result_df[result_df['논란 유형'].str.contains(controversy_type, na=False)]
 
     if result_df.empty:
-        return None
+            # 결과 저장
+            output_json = {
+                "selected_text": selected_text,
+                "prob_score": prob_score,
+                "prob_text": prob_text,
+                "danger_score": danger_score,
+                "danger_text": danger_text,
+            }
+            with open(upload_dir + "/" + title + ".json", "w") as json_file:
+                json.dump(output_json, json_file, ensure_ascii=False, indent=4)
+
+            return output_json
     else:
         # 검색된 사례들의 대분류와 논란 유형 수집
         categories = set()
