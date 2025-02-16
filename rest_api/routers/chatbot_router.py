@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import psycopg2
 from typing import Dict, Any
-from rest_api.hcx_api import call_hyperclova
+from rest_api.clova_api import call_hyperclova
 from prompts.prs_cns_prompt import (PROMPT_revenue, PROMPT_engagement, PROMPT_communication,
                                     PROMPT_targeting, PROMPT_popular_videos, PROMPT_thumbnail,
                                     PROMPT_upload_pattern, PROMPT_activity, PROMPT_summary)

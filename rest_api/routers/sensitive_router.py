@@ -5,7 +5,7 @@ import asyncio
 import aiofiles
 import requests
 from fastapi import HTTPException, APIRouter, UploadFile, File, Form
-from rest_api.hcx_api import call_hyperclova, clova_speech_stt
+from rest_api.clova_api import call_hyperclova, clova_speech_stt
 from prompts.sensitivity_prompt import PROMPT_sensitive
 import pandas as pd
 import ast

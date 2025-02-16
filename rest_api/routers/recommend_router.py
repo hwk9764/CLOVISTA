@@ -3,10 +3,7 @@ import time
 import requests
 from typing import Dict, Any
 from prompts.recommend_prompt import PROMPT_identity, PROMPT_content
-from rest_api.hcx_api import call_hyperclova
-
-HYPERCLOVA_API_URL = "https://clovastudio.stream.ntruss.com"
-HYPERCLOVA_API_KEY = "Bearer nv-f5786fde571f424786ed0823986ca992h3P1"
+from rest_api.clova_api import call_hyperclova
 
 recommendation_router = APIRouter()
 
