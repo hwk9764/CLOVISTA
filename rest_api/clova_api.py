@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import requests
 import time
-from typing import Dict, Any
+import json
 from fastapi import HTTPException
 
-HYPERCLOVA_API_URL = "https://clovastudio.stream.ntruss.com"
-HYPERCLOVA_API_KEY = "Bearer nv-f5786fde571f424786ed0823986ca992h3P1"
+HYPERCLOVA_API_URL = "enter your api url"
+HYPERCLOVA_API_KEY = "enter your api key"
 
 class CompletionExecutor:
     def __init__(self, host, api_key):
@@ -60,7 +60,7 @@ def call_hyperclova(PROMPT, temperature: int = 0.35, max_tokens: int = 150):
 
 # CLOVA Speech API 요청
 def clova_speech_stt(file_path):
-    headers = {"X-CLOVASPEECH-API-KEY": "2f5cb96d73cf49459e862d2cc5be6407"}
+    headers = {"X-CLOVASPEECH-API-KEY": "enter your api key"}
     files = {
         "media": open(file_path, "rb"),
         "params": (None, json.dumps({"language": "ko-KR", "completion": "sync"}).encode("UTF-8"), "application/json"),
