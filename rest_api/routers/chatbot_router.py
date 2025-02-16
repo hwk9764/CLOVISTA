@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import psycopg2
 from typing import Dict, Any
+from rest_api.hcx_api import call_hyperclova
 from prompts.prs_cns_prompt import (PROMPT_revenue, PROMPT_engagement, PROMPT_communication,
                                     PROMPT_targeting, PROMPT_popular_videos, PROMPT_thumbnail,
                                     PROMPT_upload_pattern, PROMPT_activity, PROMPT_summary)
@@ -26,7 +27,6 @@ class CompletionExecutor:
     def __init__(self):
         self._host = "https://clovastudio.stream.ntruss.com"
         self._api_key = "Bearer nv-f5786fde571f424786ed0823986ca992h3P1"
-        self._request_id = "309fa53d16a64d7c9c2d8f67f74ac70d"
 
     def execute(self, prompt_type: str, metrics: Dict[str, Any], max_tokens: int = 150):
         prompt = prompts[prompt_type]
@@ -48,7 +48,6 @@ class CompletionExecutor:
 
         headers = {
             "Authorization": self._api_key,
-            "X-NCP-CLOVASTUDIO-REQUEST-ID": self._request_id,
             "Content-Type": "application/json; charset=utf-8",
             "Accept": "text/event-stream",
         }
@@ -66,6 +65,13 @@ class CompletionExecutor:
                             response_content = json_data["message"]["content"]
         return response_content
 
+def get_formatted_prompt(prompt_type: str, metrics: Dict[str, Any]):
+    prompt = prompts[prompt_type]
+    formatted_prompt = [
+        prompt[0],
+        {"role": "user", "content": prompt[1]["content"].format(**metrics)}
+    ]
+    return formatted_prompt
 
 def get_db_engine(request: Request):
     """
@@ -303,9 +309,9 @@ async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
         metrics['view_ratio'] = metrics['avg_views_per_video'] / competitor_avg_views if competitor_avg_views > 0 else 0
         metrics['like_ratio'] = metrics['avg_likes_per_video'] / competitor_avg_likes if competitor_avg_likes > 0 else 0
         metrics['comment_ratio'] = metrics['avg_comments_per_video'] / competitor_avg_comments if competitor_avg_comments > 0 else 0
-
-        executor = CompletionExecutor()
-        return executor.execute('revenue', metrics, max_tokens=250)
+        
+        formatted_prompt = get_formatted_prompt('revenue', metrics)
+        return call_hyperclova(formatted_prompt, temperature=0.15, max_tokens=250)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -402,8 +408,8 @@ async def analyze_engagement(channel_name: str, db_engine=Depends(get_db_engine)
             "avg_share_ratio": safe_round(competitor_df.iloc[0]["avg_share_ratio"] if not competitor_df.empty else 0)
         }
 
-        executor = CompletionExecutor()
-        return executor.execute('engagement', metrics)
+        formatted_prompt = get_formatted_prompt('engagement', metrics)
+        return call_hyperclova(formatted_prompt, temperature=0.15)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -578,8 +584,8 @@ async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engi
             "total_channels": int(total_channels_df.iloc[0]["total_channels"]) if not total_channels_df.empty and total_channels_df.iloc[0]["total_channels"] is not None else 0  # 추가
         }
 
-        executor = CompletionExecutor()
-        return executor.execute('communication', metrics)
+        formatted_prompt = get_formatted_prompt('communication', metrics)
+        return call_hyperclova(formatted_prompt, temperature=0.15)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -715,8 +721,8 @@ async def analyze_targeting(channel_name: str, db_engine=Depends(get_db_engine))
             "upload_rank": int(upload_stats_df.iloc[0]["upload_rank"]) if not upload_stats_df.empty and upload_stats_df.iloc[0]["upload_rank"] is not None else 0
         }
 
-        executor = CompletionExecutor()
-        return executor.execute('targeting', metrics)
+        formatted_prompt = get_formatted_prompt('targeting', metrics)
+        return call_hyperclova(formatted_prompt, temperature=0.15)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -793,6 +799,8 @@ async def analyze_popular_videos(channel_name: str, db_engine=Depends(get_db_eng
         }
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('popular_videos', metrics)
+        result = call_hyperclova(formatted_prompt, temperature=0.15)
         return executor.execute('popular_videos', metrics, max_tokens=150)
 
     except Exception as e:
@@ -863,8 +871,8 @@ async def analyze_thumbnails(channel_name: str, db_engine=Depends(get_db_engine)
             "ctr_ratio3": float(df.iloc[2]["ctr_ratio"]) if len(df) > 2 and df.iloc[2]["ctr_ratio"] is not None else 0
         }
 
-        executor = CompletionExecutor()
-        return executor.execute('thumbnail', metrics, max_tokens=150)
+        formatted_prompt = get_formatted_prompt('thumbnail', metrics)
+        return call_hyperclova(formatted_prompt, temperature=0.15)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -931,8 +939,8 @@ async def analyze_upload_pattern(channel_name: str, db_engine=Depends(get_db_eng
             "total_channels": int(total_channels_df.iloc[0]['total_channels']) if not total_channels_df.empty else 0
         }
 
-        executor = CompletionExecutor()
-        return executor.execute('upload_pattern', metrics, max_tokens=150)
+        formatted_prompt = get_formatted_prompt('upload_pattern', metrics)
+        return call_hyperclova(formatted_prompt, temperature=0.15)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1042,8 +1050,8 @@ async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
             "view_rank_percent": round((view_stats_df.iloc[0]["view_rank"] / total_channels_df.iloc[0]["total_channels"]) * 100, 1) if not view_stats_df.empty and not total_channels_df.empty else 0,
         }
 
-        executor = CompletionExecutor()
-        return executor.execute('activity', metrics, max_tokens=150)
+        formatted_prompt = get_formatted_prompt('activity', metrics)
+        return call_hyperclova(formatted_prompt, temperature=0.15, max_tokens=150)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1232,8 +1240,8 @@ async def analyze_channel_summary(channel_name: str, db_engine=Depends(get_db_en
             "total_channels": int(total_channels_df.iloc[0]["total_channels"] if not total_channels_df.empty else 0)
         }
 
-        executor = CompletionExecutor()
-        return executor.execute('summary', metrics)
+        formatted_prompt = get_formatted_prompt('summary', metrics)
+        return call_hyperclova(formatted_prompt, temperature=0.15)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
