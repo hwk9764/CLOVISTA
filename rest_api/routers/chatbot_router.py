@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import psycopg2
 from typing import Dict, Any
+from rest_api.hcx_api import call_hyperclova
 from prompts.prs_cns_prompt import (PROMPT_revenue, PROMPT_engagement, PROMPT_communication,
                                     PROMPT_targeting, PROMPT_popular_videos, PROMPT_thumbnail,
                                     PROMPT_upload_pattern, PROMPT_activity, PROMPT_summary)
@@ -66,6 +67,13 @@ class CompletionExecutor:
                             response_content = json_data["message"]["content"]
         return response_content
 
+def get_formatted_prompt(prompt_type: str, metrics: Dict[str, Any]):
+    prompt = prompts[prompt_type]
+    formatted_prompt = [
+        prompt[0],
+        {"role": "user", "content": prompt[1]["content"].format(**metrics)}
+    ]
+    return formatted_prompt
 
 def get_db_engine(request: Request):
     """
@@ -305,6 +313,8 @@ async def analyze_revenue(channel_name: str, db_engine=Depends(get_db_engine)):
         metrics['comment_ratio'] = metrics['avg_comments_per_video'] / competitor_avg_comments if competitor_avg_comments > 0 else 0
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('revenue', metrics)
+        result = call_hyperclova(formatted_prompt)
         return executor.execute('revenue', metrics, max_tokens=250)
 
     except Exception as e:
@@ -403,6 +413,8 @@ async def analyze_engagement(channel_name: str, db_engine=Depends(get_db_engine)
         }
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('engagement', metrics)
+        result = call_hyperclova(formatted_prompt)
         return executor.execute('engagement', metrics)
 
     except Exception as e:
@@ -579,6 +591,8 @@ async def analyze_communication(channel_name: str, db_engine=Depends(get_db_engi
         }
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('communication', metrics)
+        result = call_hyperclova(formatted_prompt)
         return executor.execute('communication', metrics)
 
     except Exception as e:
@@ -716,6 +730,8 @@ async def analyze_targeting(channel_name: str, db_engine=Depends(get_db_engine))
         }
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('targeting', metrics)
+        result = call_hyperclova(formatted_prompt)
         return executor.execute('targeting', metrics)
 
     except Exception as e:
@@ -793,6 +809,8 @@ async def analyze_popular_videos(channel_name: str, db_engine=Depends(get_db_eng
         }
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('popular_videos', metrics)
+        result = call_hyperclova(formatted_prompt)
         return executor.execute('popular_videos', metrics, max_tokens=150)
 
     except Exception as e:
@@ -864,6 +882,8 @@ async def analyze_thumbnails(channel_name: str, db_engine=Depends(get_db_engine)
         }
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('thumbnail', metrics)
+        result = call_hyperclova(formatted_prompt)
         return executor.execute('thumbnail', metrics, max_tokens=150)
 
     except Exception as e:
@@ -932,6 +952,8 @@ async def analyze_upload_pattern(channel_name: str, db_engine=Depends(get_db_eng
         }
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('upload_pattern', metrics)
+        result = call_hyperclova(formatted_prompt)
         return executor.execute('upload_pattern', metrics, max_tokens=150)
 
     except Exception as e:
@@ -1043,6 +1065,8 @@ async def analyze_activity(channel_name: str, db_engine=Depends(get_db_engine)):
         }
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('activity', metrics)
+        result = call_hyperclova(formatted_prompt)
         return executor.execute('activity', metrics, max_tokens=150)
 
     except Exception as e:
@@ -1233,6 +1257,8 @@ async def analyze_channel_summary(channel_name: str, db_engine=Depends(get_db_en
         }
 
         executor = CompletionExecutor()
+        formatted_prompt = get_formatted_prompt('summary', metrics)
+        result = call_hyperclova(formatted_prompt)
         return executor.execute('summary', metrics)
 
     except Exception as e:
