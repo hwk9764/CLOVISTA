@@ -22,6 +22,20 @@ Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
 
+**다음 에러가 발생할 경우**
+```**
+> start
+> react-scripts start
+
+sh: 1: react-scripts: not found
+```
+package-lock.json이 있는 폴더에서 다음 코드 실행
+```
+rm -rf node_modules package-lock.json
+npm install
+npm start
+```
+
 ### `npm test`
 
 Launches the test runner in the interactive watch mode.\
