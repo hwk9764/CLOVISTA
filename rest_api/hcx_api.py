@@ -11,11 +11,11 @@ class CompletionExecutor:
     def __init__(self, host, api_key):
         self._host = host
         self._api_key = api_key
+        self._max_retries = 5
 
     def execute(self, completion_request):
         headers = {
             "Authorization": self._api_key,
-            "X-NCP-CLOVASTUDIO-REQUEST-ID": self._request_id,
             "Content-Type": "application/json; charset=utf-8",
         }
 
@@ -58,8 +58,16 @@ def call_hyperclova(PROMPT, temperature: int = 0.35, max_tokens: int = 150):
             }
     return completion_executor.execute(request_data)
 
-# CompletionExecutor 객체 생성 및 실행
-completion_executor = CompletionExecutor(
-    host=HYPERCLOVA_API_URL,
-    api_key=HYPERCLOVA_API_KEY,
-)
+# CLOVA Speech API 요청
+def clova_speech_stt(file_path):
+    headers = {"X-CLOVASPEECH-API-KEY": "2f5cb96d73cf49459e862d2cc5be6407"}
+    files = {
+        "media": open(file_path, "rb"),
+        "params": (None, json.dumps({"language": "ko-KR", "completion": "sync"}).encode("UTF-8"), "application/json"),
+    }
+    response = requests.post(
+        "https://clovaspeech-gw.ncloud.com/external/v1/10094/9409a0f5da32cf23f7c4ecb52ef04a38ea2e6612670a3a4207613b2523ecf473/recognizer/upload",
+        headers=headers,
+        files=files,
+    )
+    return response.json()

@@ -3,7 +3,7 @@ import time
 import requests
 from typing import Dict, Any
 from prompts.recommend_prompt import PROMPT_identity, PROMPT_content
-from prs_cns.hcx_api import call_hyperclova
+from rest_api.hcx_api import call_hyperclova
 
 HYPERCLOVA_API_URL = "https://clovastudio.stream.ntruss.com"
 HYPERCLOVA_API_KEY = "Bearer nv-f5786fde571f424786ed0823986ca992h3P1"
@@ -30,8 +30,8 @@ async def recommendation(answers: Dict[str, Any]):
     """
     print('answrs : ', answers)
     try:
-        recommended_identity = call_hyperclova(identity_prompt(answers), temperature=0.35, max_tokens=1024)
-        recommended_contents = call_hyperclova(contents_prompt(answers), temperature=0.35, max_tokens=1024)
+        recommended_identity = call_hyperclova(identity_prompt(answers), max_tokens=1024)
+        recommended_contents = call_hyperclova(contents_prompt(answers), max_tokens=1024)
         result = {
             '정체성 추천': recommended_identity,
             '콘텐츠 추천': recommended_contents
