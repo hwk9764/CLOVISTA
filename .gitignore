@@ -6,7 +6,7 @@ uploads/
 # *.ipynb
 
 # My custom
-.gihub
+.github
 .vscode
 .venv_sh
 *.pyc
